@@ -1,0 +1,5 @@
+/* English App Store and iOS Home Screen Display Name */
+"CFBundleDisplayName" = "Brain Sticky";
+"CFBundleName" = "Brain Sticky";
+"NSFaceIDUsageDescription" = "Use Face ID / Touch ID to securely unlock your Password Vault 🔐";
+"NSUserNotificationsUsageDescription" = "Enable notifications for wishlist cool-off alerts and todo reminders 🫧";

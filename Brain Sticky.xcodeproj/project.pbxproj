@@ -86,9 +86,10 @@
 				};
 			};
 			buildConfigurationList = A2E4A3813034387900FBB49C /* Build configuration list for PBXProject "Brain Sticky" */;
-			developmentRegion = en;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				"zh-Hans",
 				en,
 				Base,
 			);
@@ -254,6 +255,10 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "脑雾收集站";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Brain Sticky 需要使用 Face ID / Touch ID 解锁您的健忘密码保险盒，确保敏感生活凭证仅您本人可见。";
+				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "Brain Sticky 需要发送本地通知以提醒您紧急待办事项及欲望冷静期结束。";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -298,6 +303,10 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "脑雾收集站";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Brain Sticky 需要使用 Face ID / Touch ID 解锁您的健忘密码保险盒，确保敏感生活凭证仅您本人可见。";
+				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "Brain Sticky 需要发送本地通知以提醒您紧急待办事项及欲望冷静期结束。";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
