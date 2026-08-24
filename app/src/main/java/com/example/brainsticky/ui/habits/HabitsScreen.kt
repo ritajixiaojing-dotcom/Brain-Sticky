@@ -159,25 +159,49 @@ fun HabitItemCard(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = if (lang == AppLanguage.CHINESE) "🔥 连续 ${entry.streakDays} 天" else "🔥 ${entry.streakDays} days streak",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = BentoColors.OmniElectric
-                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(BentoColors.OmniElectric.copy(alpha = 0.12f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = if (lang == AppLanguage.CHINESE) "🔥 连续 ${entry.streakDays} 天" else "🔥 ${entry.streakDays}d streak",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BentoColors.OmniElectric
+                        )
+                    }
+
+                    val totalDays = entry.historyDates.size.coerceAtLeast(entry.streakDays)
+                    if (totalDays > 0) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(BentoColors.NoteAmber.copy(alpha = 0.15f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "⭐️ 累计 $totalDays 天" else "⭐️ $totalDays d total",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BentoColors.NoteAmber
+                            )
+                        }
+                    }
                 }
             }
 
             // Big Check-in Button
             Button(
                 onClick = onToggle,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (entry.isCompleted) BentoColors.GroceryMint else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                    containerColor = if (entry.isCompleted) BentoColors.GroceryMint else BentoColors.OmniElectric
                 ),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -187,9 +211,14 @@ fun HabitItemCard(
                         Icon(Icons.Default.Check, contentDescription = "Done", tint = Color.White, modifier = Modifier.size(16.dp))
                     }
                     Text(
-                        text = if (entry.isCompleted) (if (lang == AppLanguage.CHINESE) "已打卡" else "Done") else (if (lang == AppLanguage.CHINESE) "打卡" else "Check-in"),
-                        fontWeight = FontWeight.Bold,
-                        color = if (entry.isCompleted) Color.White else MaterialTheme.colorScheme.onSurface
+                        text = if (entry.isCompleted) {
+                            if (lang == AppLanguage.CHINESE) "✓ 今日已打卡" else "✓ Done Today"
+                        } else {
+                            if (lang == AppLanguage.CHINESE) "✨ 打卡 +1" else "✨ Check-in"
+                        },
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 12.sp,
+                        color = Color.White
                     )
                 }
             }
