@@ -306,12 +306,31 @@ fun WishlistCardRow(
                         )
                     }
                 } else if (item.isPurchased) {
-                    Text(
-                        text = if (lang == AppLanguage.CHINESE) "已拥有 ✨" else "Owned ✨",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = BentoColors.GroceryMint
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = onRestore,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "↩️ 放回冷静" else "↩️ Back to Cooling",
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        Text(
+                            text = if (lang == AppLanguage.CHINESE) "已拥有 ✨" else "Owned ✨",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BentoColors.GroceryMint
+                        )
+                    }
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
