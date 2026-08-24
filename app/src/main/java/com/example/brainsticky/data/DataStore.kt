@@ -85,8 +85,17 @@ class DataStore private constructor(context: Context) {
         val wishlistJson = prefs.getString("wishlist", null)
         wishlistItems = if (wishlistJson != null) try { json.decodeFromString(wishlistJson) } catch (e: Exception) { emptyList() } else emptyList()
 
-        if (todos.isEmpty() && stickyNotes.isEmpty() && vaultItems.isEmpty() && groceryItems.isEmpty() && wishlistItems.isEmpty() && customModules.isEmpty()) {
-            seedSampleData(language)
+        if (customModules.isEmpty()) {
+            customModules = listOf(
+                CustomModule(
+                    id = "habit_module",
+                    title = if (language == AppLanguage.ENGLISH) "Check-in" else "打卡",
+                    subtitle = if (language == AppLanguage.ENGLISH) "Small daily habits, compounding over time ✨" else "坚持微小日常，日积月累 ✨",
+                    icon = "target",
+                    themeColorHex = "#4D88FF",
+                    entries = emptyList()
+                )
+            )
         } else {
             // Auto-refresh daily check-in state for the new day
             val todayStr = getTodayDateString()
