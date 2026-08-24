@@ -377,44 +377,99 @@ fun BentoDashboardScreen(
                 }
             } else {
                 // Search Results
+                // Search Results (Universal Search across all 6 modules)
                 item {
+                    val matchedTodos = dataStore.todos.filter { it.title.contains(searchQuery, ignoreCase = true) }
+                    val matchedNotes = dataStore.stickyNotes.filter { it.content.contains(searchQuery, ignoreCase = true) }
+                    val matchedVault = dataStore.vaultItems.filter {
+                        it.title.contains(searchQuery, ignoreCase = true) ||
+                        it.accountOrKey.contains(searchQuery, ignoreCase = true) ||
+                        it.notes.contains(searchQuery, ignoreCase = true)
+                    }
+                    val matchedGrocery = dataStore.groceryItems.filter { it.name.contains(searchQuery, ignoreCase = true) }
+                    val matchedWishlist = dataStore.wishlistItems.filter {
+                        it.title.contains(searchQuery, ignoreCase = true) ||
+                        it.notes.contains(searchQuery, ignoreCase = true)
+                    }
+                    val matchedHabits = dataStore.customModules.flatMap { it.entries }.filter {
+                        it.title.contains(searchQuery, ignoreCase = true) ||
+                        it.detail.contains(searchQuery, ignoreCase = true) ||
+                        it.icon.contains(searchQuery)
+                    }
+
+                    val totalMatches = matchedTodos.size + matchedNotes.size + matchedVault.size + matchedGrocery.size + matchedWishlist.size + matchedHabits.size
+
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = if (lang == AppLanguage.CHINESE) "全库搜索结果" else "Search Results",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "全库搜索结果" else "Search Results",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "共 $totalMatches 条" else "$totalMatches found",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            )
+                        }
+
+                        if (totalMatches == 0) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (lang == AppLanguage.CHINESE) "🔍 未找到与「$searchQuery」相关的脑雾记录" else "🔍 No items found for \"$searchQuery\"",
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
 
                         // Match Todos
-                        dataStore.todos.filter { it.title.contains(searchQuery, ignoreCase = true) }.forEach { item ->
+                        matchedTodos.forEach { item ->
                             SearchResultItem(title = item.title, category = if (lang == AppLanguage.CHINESE) "待办" else "Todo", color = BentoColors.UrgentCoral) {
                                 onNavigate(ScreenRoute.TODO)
                             }
                         }
 
                         // Match Notes
-                        dataStore.stickyNotes.filter { it.content.contains(searchQuery, ignoreCase = true) }.forEach { note ->
+                        matchedNotes.forEach { note ->
                             SearchResultItem(title = note.content, category = if (lang == AppLanguage.CHINESE) "日常" else "Daily", color = BentoColors.NoteAmber) {
                                 onNavigate(ScreenRoute.DROPS)
                             }
                         }
 
+                        // Match Habits & Check-ins (打卡、运动、锻炼、阅读等)
+                        matchedHabits.forEach { habit ->
+                            val habitLabel = "${habit.icon} ${habit.title}${if (habit.detail.isNotBlank()) " · ${habit.detail}" else ""}"
+                            SearchResultItem(title = habitLabel, category = if (lang == AppLanguage.CHINESE) "打卡" else "Check-in", color = BentoColors.OmniElectric) {
+                                onNavigate(ScreenRoute.HABITS)
+                            }
+                        }
+
                         // Match Vault
-                        dataStore.vaultItems.filter { it.title.contains(searchQuery, ignoreCase = true) }.forEach { v ->
+                        matchedVault.forEach { v ->
                             SearchResultItem(title = v.title, category = if (lang == AppLanguage.CHINESE) "密码" else "Vault", color = BentoColors.VaultViolet) {
                                 onNavigate(ScreenRoute.VAULT)
                             }
                         }
 
                         // Match Grocery
-                        dataStore.groceryItems.filter { it.name.contains(searchQuery, ignoreCase = true) }.forEach { g ->
+                        matchedGrocery.forEach { g ->
                             SearchResultItem(title = g.name, category = if (lang == AppLanguage.CHINESE) "买菜" else "Market", color = BentoColors.GroceryMint) {
                                 onNavigate(ScreenRoute.GROCERY)
                             }
                         }
 
                         // Match Wishlist
-                        dataStore.wishlistItems.filter { it.title.contains(searchQuery, ignoreCase = true) }.forEach { w ->
+                        matchedWishlist.forEach { w ->
                             SearchResultItem(title = w.title, category = if (lang == AppLanguage.CHINESE) "剁手" else "Wishlist", color = BentoColors.WishlistRuby) {
                                 onNavigate(ScreenRoute.WISHLIST)
                             }
