@@ -252,10 +252,10 @@ fun AddHabitDialog(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .background(if (preset.titleZh == "其他") BentoColors.OmniElectric.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                 .clickable {
                                     icon = preset.icon
-                                    title = preset.getTitle(lang)
+                                    title = if (preset.titleZh == "其他") "" else preset.getTitle(lang)
                                     detail = preset.getDetail(lang)
                                 }
                                 .padding(horizontal = 10.dp, vertical = 6.dp)
@@ -263,7 +263,8 @@ fun AddHabitDialog(
                             Text(
                                 text = "${preset.icon} ${preset.getTitle(lang)}",
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = if (preset.titleZh == "其他") BentoColors.OmniElectric else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }

@@ -71,7 +71,7 @@ fun BentoDashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = if (lang == AppLanguage.CHINESE) "✨ 收集点滴 🫧" else "✨ Capture Drop 🫧",
+                        text = if (lang == AppLanguage.CHINESE) "✨ 收集点滴 🫧" else "✨ Quick Capture 🫧",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = Color.White
@@ -104,31 +104,37 @@ fun BentoDashboardScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = if (lang == AppLanguage.CHINESE) "脑雾收集站" else "Brain Sticky",
-                                fontSize = 24.sp,
+                                text = if (lang == AppLanguage.CHINESE) "脑雾收集站 🫧" else "Brain Sticky 🫧",
+                                fontSize = 25.sp,
                                 fontWeight = FontWeight.Black,
+                                letterSpacing = 0.5.sp,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
 
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(BentoColors.OmniElectric.copy(alpha = 0.15f))
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                                    .padding(horizontal = 9.dp, vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = if (lang == AppLanguage.CHINESE) "$totalClouds 朵" else "$totalClouds Clouds",
+                                    text = if (totalClouds == 0) {
+                                        if (lang == AppLanguage.CHINESE) "✨ 脑袋放空" else "✨ Mind Clear"
+                                    } else {
+                                        if (lang == AppLanguage.CHINESE) "📝 $totalClouds 项记录" else "📝 $totalClouds Items"
+                                    },
                                     fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.ExtraBold,
                                     color = BentoColors.OmniElectric
                                 )
                             }
                         }
 
                         Text(
-                            text = if (lang == AppLanguage.CHINESE) "今天也把所有琐事交给我吧" else "Leave all the little chores to me today",
+                            text = if (lang == AppLanguage.CHINESE) "今天也把所有琐事交给我吧 ～ ✨" else "Leave all the little chores to me today ✨",
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f)
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
                     }
 
@@ -441,11 +447,11 @@ fun BentoCard(
     content: @Composable () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = modifier
-            .height(130.dp)
-            .shadow(2.dp, RoundedCornerShape(20.dp))
+            .height(134.dp)
+            .shadow(3.dp, RoundedCornerShape(22.dp), spotColor = themeColor.copy(alpha = 0.2f))
             .clickable { onClick() }
     ) {
         Column(
@@ -461,22 +467,23 @@ fun BentoCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(themeColor.copy(alpha = 0.15f)),
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(themeColor.copy(alpha = 0.16f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(icon, contentDescription = null, tint = themeColor, modifier = Modifier.size(13.dp))
+                        Icon(icon, contentDescription = null, tint = themeColor, modifier = Modifier.size(15.dp))
                     }
 
                     Text(
                         text = title,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 15.sp,
+                        letterSpacing = 0.3.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -484,14 +491,14 @@ fun BentoCard(
                 if (badgeCount > 0) {
                     Box(
                         modifier = Modifier
-                            .clip(CircleShape)
+                            .clip(RoundedCornerShape(8.dp))
                             .background(themeColor)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .padding(horizontal = 7.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = "$badgeCount",
                             fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Black,
                             color = Color.White
                         )
                     }

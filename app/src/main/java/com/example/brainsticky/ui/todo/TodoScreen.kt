@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -119,6 +120,54 @@ fun TodoScreen(
                                     color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+
+                    // Time / Reminder Selector Row
+                    Text(
+                        text = if (lang == AppLanguage.CHINESE) "⏰ 提醒时间" else "⏰ Reminder Time",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+
+                    val timeOptions = listOf(
+                        Pair(null, if (lang == AppLanguage.CHINESE) "无提醒" else "None"),
+                        Pair(15, if (lang == AppLanguage.CHINESE) "15 分钟" else "15m"),
+                        Pair(30, if (lang == AppLanguage.CHINESE) "30 分钟" else "30m"),
+                        Pair(60, if (lang == AppLanguage.CHINESE) "1 小时" else "1h"),
+                        Pair(120, if (lang == AppLanguage.CHINESE) "2 小时" else "2h"),
+                        Pair(480, if (lang == AppLanguage.CHINESE) "今晚" else "Tonight"),
+                        Pair(1440, if (lang == AppLanguage.CHINESE) "明天" else "Tomorrow")
+                    )
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(timeOptions) { (mins, label) ->
+                            val isSelected = selectedMinutes == mins
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (isSelected) BentoColors.UrgentCoral.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                    )
+                                    .border(
+                                        width = if (isSelected) 1.5.dp else 0.dp,
+                                        color = if (isSelected) BentoColors.UrgentCoral else Color.Transparent,
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    .clickable { selectedMinutes = mins }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) BentoColors.UrgentCoral else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -268,11 +317,28 @@ fun TodoCardRow(
                     }
 
                     if (item.reminderMinutes != null) {
-                        Text(
-                            text = "⏰ ${item.reminderMinutes}m",
-                            fontSize = 10.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        )
+                        val timeLabel = when (item.reminderMinutes) {
+                            15 -> if (lang == AppLanguage.CHINESE) "15分钟" else "15m"
+                            30 -> if (lang == AppLanguage.CHINESE) "30分钟" else "30m"
+                            60 -> if (lang == AppLanguage.CHINESE) "1小时" else "1h"
+                            120 -> if (lang == AppLanguage.CHINESE) "2小时" else "2h"
+                            480 -> if (lang == AppLanguage.CHINESE) "今晚" else "Tonight"
+                            1440 -> if (lang == AppLanguage.CHINESE) "明天" else "Tomorrow"
+                            else -> "${item.reminderMinutes}m"
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(BentoColors.UrgentCoral.copy(alpha = 0.12f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "⏰ $timeLabel",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BentoColors.UrgentCoral
+                            )
+                        }
                     }
                 }
             }

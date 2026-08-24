@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,6 +41,7 @@ fun GroceryScreen(
     var newItemName by remember { mutableStateOf("") }
     var selectedAisle by remember { mutableStateOf(GroceryAisle.PRODUCE) }
     var isShowingFrequentDialog by remember { mutableStateOf(false) }
+    var isAisleMenuExpanded by remember { mutableStateOf(false) }
 
     val totalCount = dataStore.groceryItems.size
     val boughtCount = dataStore.groceryItems.count { it.isBought }
@@ -128,30 +130,81 @@ fun GroceryScreen(
                 }
             }
 
+            // Floating Category Selector Pills
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(GroceryAisle.entries) { aisle ->
+                    val isSelected = selectedAisle == aisle
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (isSelected) BentoColors.GroceryMint else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
+                            .clickable { selectedAisle = aisle }
+                            .padding(horizontal = 12.dp, vertical = 7.dp)
+                    ) {
+                        Text(
+                            text = aisle.getCuteTitle(lang),
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+
             // Quick Add Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Aisle Selector Chip
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(BentoColors.GroceryMint.copy(alpha = 0.15f))
-                        .clickable {
-                            val all = GroceryAisle.entries
-                            val nextIndex = (all.indexOf(selectedAisle) + 1) % all.size
-                            selectedAisle = all[nextIndex]
+                // Aisle Selector Chip with Floating Dropdown Menu
+                Box {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(BentoColors.GroceryMint.copy(alpha = 0.15f))
+                            .clickable { isAisleMenuExpanded = true }
+                            .padding(horizontal = 10.dp, vertical = 12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = selectedAisle.getCuteTitle(lang),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = BentoColors.GroceryMint
+                            )
+                            Text("▾", fontSize = 10.sp, color = BentoColors.GroceryMint)
                         }
-                        .padding(horizontal = 10.dp, vertical = 12.dp)
-                ) {
-                    Text(
-                        text = selectedAisle.getCuteTitle(lang),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        color = BentoColors.GroceryMint
-                    )
+                    }
+
+                    DropdownMenu(
+                        expanded = isAisleMenuExpanded,
+                        onDismissRequest = { isAisleMenuExpanded = false }
+                    ) {
+                        GroceryAisle.entries.forEach { aisle ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        text = aisle.getCuteTitle(lang),
+                                        fontWeight = if (selectedAisle == aisle) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (selectedAisle == aisle) BentoColors.GroceryMint else MaterialTheme.colorScheme.onSurface
+                                    )
+                                },
+                                onClick = {
+                                    selectedAisle = aisle
+                                    isAisleMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
                 }
 
                 TextField(

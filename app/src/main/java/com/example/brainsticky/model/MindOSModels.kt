@@ -201,7 +201,8 @@ data class BuiltinHabitPreset(
             BuiltinHabitPreset("🧘", "正念冥想", "Meditation", "深呼吸放空 10 分钟", "10 mins breathing"),
             BuiltinHabitPreset("🇬🇧", "背单词", "Vocab & English", "打卡 20 个新单词", "Learn 20 new words"),
             BuiltinHabitPreset("💰", "今日记账", "Expense Tracking", "记录每一笔开销", "Log all daily spendings"),
-            BuiltinHabitPreset("🧴", "早晚护肤", "Skincare Routine", "防晒与补水", "Moisturize & sunscreen")
+            BuiltinHabitPreset("🧴", "早晚护肤", "Skincare Routine", "防晒与补水", "Moisturize & sunscreen"),
+            BuiltinHabitPreset("✨", "其他", "Other", "", "")
         )
     }
 }
