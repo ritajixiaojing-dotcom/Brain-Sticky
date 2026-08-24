@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -95,9 +96,9 @@ fun BentoDashboardScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(6.dp)) }
+            item { Spacer(modifier = Modifier.height(10.dp)) }
 
-            // MARK: - Header
+            // MARK: - Header (Cute & Bouncy Typography)
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -163,66 +164,42 @@ fun BentoDashboardScreen(
 
             // MARK: - Search Bar
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextField(
-                        value = dataStore.searchText,
-                        onValueChange = { dataStore.searchText = it },
-                        placeholder = {
-                            Text(
-                                if (lang == AppLanguage.CHINESE) "搜索脑雾与灵感..." else "Search brain fog & notes...",
-                                fontSize = 13.sp
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        },
-                        trailingIcon = {
-                            if (isSearching) {
-                                IconButton(onClick = { dataStore.searchText = "" }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(16.dp))
-                                }
+                TextField(
+                    value = dataStore.searchText,
+                    onValueChange = { dataStore.searchText = it },
+                    placeholder = {
+                        Text(
+                            if (lang == AppLanguage.CHINESE) "搜索脑雾与灵感..." else "Search brain fog & notes...",
+                            fontSize = 13.sp
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        if (isSearching) {
+                            IconButton(onClick = { dataStore.searchText = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(16.dp))
                             }
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .shadow(2.dp, RoundedCornerShape(16.dp))
-                    )
-
-                    if (isSearching) {
-                        Button(
-                            onClick = { dataStore.searchText = "" },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = BentoColors.OmniElectric
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = if (lang == AppLanguage.CHINESE) "返回桌面" else "Cancel",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = Color.White
-                            )
                         }
-                    }
-                }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(2.dp, RoundedCornerShape(16.dp))
+                )
             }
 
             // MARK: - Bento Grid (When not searching)
@@ -435,23 +412,39 @@ fun BentoDashboardScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = if (lang == AppLanguage.CHINESE) "全库搜索结果 ($totalMatches)" else "Search Results ($totalMatches)",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(BentoColors.OmniElectric.copy(alpha = 0.12f))
-                                    .clickable { dataStore.searchText = "" }
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = if (lang == AppLanguage.CHINESE) "↩️ 返回桌面" else "↩️ Back to Home",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = BentoColors.OmniElectric
+                                    text = if (lang == AppLanguage.CHINESE) "搜索结果" else "Results",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(BentoColors.OmniElectric.copy(alpha = 0.15f))
+                                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "$totalMatches",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = BentoColors.OmniElectric
+                                    )
+                                }
+                            }
+
+                            IconButton(
+                                onClick = { dataStore.searchText = "" },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
                         }

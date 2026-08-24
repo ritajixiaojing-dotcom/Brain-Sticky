@@ -37,9 +37,14 @@ class MainActivity : ComponentActivity() {
                 ) {
                     var currentRoute by remember { mutableStateOf(ScreenRoute.DASHBOARD) }
 
+                    val navigateToHome = {
+                        dataStore.searchText = ""
+                        currentRoute = ScreenRoute.DASHBOARD
+                    }
+
                     // Hardware/Gesture Back Handler
                     BackHandler(enabled = currentRoute != ScreenRoute.DASHBOARD) {
-                        currentRoute = ScreenRoute.DASHBOARD
+                        navigateToHome()
                     }
 
                     AnimatedContent(
@@ -56,31 +61,31 @@ class MainActivity : ComponentActivity() {
                             )
                             ScreenRoute.TODO -> TodoScreen(
                                 dataStore = dataStore,
-                                onBack = { currentRoute = ScreenRoute.DASHBOARD }
+                                onBack = navigateToHome
                             )
                             ScreenRoute.DROPS -> DropsScreen(
                                 dataStore = dataStore,
-                                onBack = { currentRoute = ScreenRoute.DASHBOARD }
+                                onBack = navigateToHome
                             )
                             ScreenRoute.VAULT -> VaultScreen(
                                 dataStore = dataStore,
-                                onBack = { currentRoute = ScreenRoute.DASHBOARD }
+                                onBack = navigateToHome
                             )
                             ScreenRoute.GROCERY -> GroceryScreen(
                                 dataStore = dataStore,
-                                onBack = { currentRoute = ScreenRoute.DASHBOARD }
+                                onBack = navigateToHome
                             )
                             ScreenRoute.WISHLIST -> WishlistScreen(
                                 dataStore = dataStore,
-                                onBack = { currentRoute = ScreenRoute.DASHBOARD }
+                                onBack = navigateToHome
                             )
                             ScreenRoute.HABITS -> HabitsScreen(
                                 dataStore = dataStore,
-                                onBack = { currentRoute = ScreenRoute.DASHBOARD }
+                                onBack = navigateToHome
                             )
                             ScreenRoute.SETTINGS -> SettingsScreen(
                                 dataStore = dataStore,
-                                onBack = { currentRoute = ScreenRoute.DASHBOARD }
+                                onBack = navigateToHome
                             )
                         }
                     }
