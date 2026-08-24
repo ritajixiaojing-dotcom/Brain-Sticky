@@ -8,7 +8,7 @@ android {
     namespace = "com.example.brainsticky"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.brainsticky"
+        applicationId = "com.ritastudio.brainsticky"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
