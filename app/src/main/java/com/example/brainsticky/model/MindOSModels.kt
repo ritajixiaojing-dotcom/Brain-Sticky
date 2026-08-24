@@ -10,15 +10,22 @@ enum class AppLanguage(val code: String, val displayName: String) {
 }
 
 @Serializable
-enum class OmniCategory(val titleZh: String, val titleEn: String, val icon: String, val hexColor: String) {
-    TODO("待办", "Todo", "checklist", "#FF5A5F"),
-    DROPS("日常", "Drops", "sparkles", "#FF9F1C"),
-    VAULT("密码", "Vault", "lock", "#845EC2"),
+enum class BentoCategory(val titleZh: String, val titleEn: String, val icon: String, val colorHex: String) {
+    TODO("待办", "Todo", "checklist", "#FF6B6B"),
+    DROPS("日常", "Daily", "sparkles", "#FF9F1C"),
+    VAULT("密码", "Vault", "lock", "#9D4EDD"),
     GROCERY("买菜", "Market", "cart", "#2EC4B6"),
-    WISHLIST("剁手", "Wishlist", "gift", "#FF4B6E"),
-    HABIT("打卡", "Check-in", "target", "#4D88FF");
+    WISHLIST("剁手", "Wishlist", "gift", "#FF4081"),
+    HABIT("打卡", "Check-in", "target", "#4D88FF")
+}
 
-    fun getTitle(lang: AppLanguage): String = if (lang == AppLanguage.CHINESE) titleZh else titleEn
+enum class OmniType(val titleZh: String, val titleEn: String) {
+    TODO("待办", "Todo"),
+    DROP("日常", "Daily"),
+    GROCERY("买菜", "Market"),
+    WISHLIST("剁手", "Wishlist"),
+    PASSWORD("密码", "Vault"),
+    HABIT("打卡", "Check-in")
 }
 
 @Serializable

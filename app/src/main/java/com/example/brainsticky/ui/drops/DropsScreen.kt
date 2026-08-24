@@ -41,7 +41,7 @@ fun DropsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        if (lang == AppLanguage.CHINESE) "日常便签" else "Drops & Notes",
+                        if (lang == AppLanguage.CHINESE) "日常便签" else "Daily Notes",
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -80,9 +80,10 @@ fun DropsScreen(
                     ) {
                         Text(text = "🫧", fontSize = 40.sp)
                         Text(
-                            text = if (lang == AppLanguage.CHINESE) "写下此刻的想法..." else "Jot down your instant thoughts...",
+                            text = if (lang == AppLanguage.CHINESE) "暂无日常记录 ✨\n点击右上角 + 记录闪现灵感" else "No Daily Notes Yet ✨\nTap + to capture thoughts",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                     }
                 }

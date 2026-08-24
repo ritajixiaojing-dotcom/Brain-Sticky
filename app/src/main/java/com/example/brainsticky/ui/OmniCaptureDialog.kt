@@ -59,7 +59,7 @@ fun OmniCaptureDialog(
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = if (lang == AppLanguage.CHINESE) "日常" else "Drops",
+                            text = if (lang == AppLanguage.CHINESE) "日常" else "Daily",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp

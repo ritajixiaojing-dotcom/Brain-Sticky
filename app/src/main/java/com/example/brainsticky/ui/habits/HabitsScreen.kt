@@ -269,6 +269,26 @@ fun AddHabitDialog(
                     }
                 }
 
+                // Emoji Picker Row
+                val quickEmojis = listOf("⭐️", "🎯", "🏃", "💧", "🌙", "📖", "🧘", "🎸", "🎹", "🏋️", "💊", "🎨", "🌿", "☕️", "🐱", "💡", "🍳", "🚴")
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(quickEmojis) { em ->
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(if (icon == em) BentoColors.OmniElectric.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                .clickable { icon = em },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = em, fontSize = 18.sp)
+                        }
+                    }
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -286,6 +306,7 @@ fun AddHabitDialog(
                         value = title,
                         onValueChange = { title = it },
                         label = { Text(if (lang == AppLanguage.CHINESE) "习惯名称" else "Habit Title") },
+                        placeholder = { Text(if (lang == AppLanguage.CHINESE) "如：背单词 / 练琴 / 随心写" else "e.g. Practice Piano / Vocab") },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
@@ -295,6 +316,7 @@ fun AddHabitDialog(
                     value = detail,
                     onValueChange = { detail = it },
                     label = { Text(if (lang == AppLanguage.CHINESE) "目标说明 (选填)" else "Target Description (Optional)") },
+                    placeholder = { Text(if (lang == AppLanguage.CHINESE) "如：每天20分钟、读10页..." else "e.g. 20 mins a day, 10 pages...") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )

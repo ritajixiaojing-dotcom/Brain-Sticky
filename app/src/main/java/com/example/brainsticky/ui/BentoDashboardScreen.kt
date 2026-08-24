@@ -227,7 +227,7 @@ fun BentoDashboardScreen(
                         }
 
                         BentoCard(
-                            title = if (lang == AppLanguage.CHINESE) "日常" else "Drops",
+                            title = if (lang == AppLanguage.CHINESE) "日常" else "Daily",
                             badgeCount = totalNotes,
                             icon = Icons.Default.AutoAwesome,
                             themeColor = BentoColors.NoteAmber,
@@ -388,7 +388,7 @@ fun BentoDashboardScreen(
 
                         // Match Notes
                         dataStore.stickyNotes.filter { it.content.contains(searchQuery, ignoreCase = true) }.forEach { note ->
-                            SearchResultItem(title = note.content, category = if (lang == AppLanguage.CHINESE) "日常" else "Drops", color = BentoColors.NoteAmber) {
+                            SearchResultItem(title = note.content, category = if (lang == AppLanguage.CHINESE) "日常" else "Daily", color = BentoColors.NoteAmber) {
                                 onNavigate(ScreenRoute.DROPS)
                             }
                         }
