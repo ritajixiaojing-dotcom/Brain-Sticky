@@ -14,7 +14,7 @@ class DataStore private constructor(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("brain_sticky_data", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
 
-    var language by mutableStateOf(AppLanguage.CHINESE)
+    var language by mutableStateOf(AppLanguage.ENGLISH)
         private set
 
     var searchText by mutableStateOf("")
@@ -46,14 +46,26 @@ class DataStore private constructor(context: Context) {
 
     // MARK: - Language
     fun setAppLanguage(lang: AppLanguage) {
+        val oldLang = language
         language = lang
         prefs.edit().putString("app_lang", lang.code).apply()
+
+        // If data is currently the initial sample data, translate sample data to match the chosen language
+        if (isCurrentlySampleData(oldLang)) {
+            seedSampleData(lang)
+        }
+    }
+
+    private fun isCurrentlySampleData(lang: AppLanguage): Boolean {
+        if (todos.isEmpty() || stickyNotes.isEmpty()) return false
+        val firstTodo = todos.firstOrNull()?.title ?: ""
+        return firstTodo == "出门关掉厨房燃气与电源" || firstTodo == "Turn off kitchen stove & lights before leaving"
     }
 
     // MARK: - Persistence
     private fun loadAll() {
-        val langCode = prefs.getString("app_lang", "zh") ?: "zh"
-        language = if (langCode == "en") AppLanguage.ENGLISH else AppLanguage.CHINESE
+        val langCode = prefs.getString("app_lang", "en") ?: "en"
+        language = if (langCode == "zh") AppLanguage.CHINESE else AppLanguage.ENGLISH
 
         val todosJson = prefs.getString("todos", null)
         todos = if (todosJson != null) try { json.decodeFromString(todosJson) } catch (e: Exception) { emptyList() } else emptyList()
@@ -77,7 +89,7 @@ class DataStore private constructor(context: Context) {
         customModules = if (customJson != null) try { json.decodeFromString(customJson) } catch (e: Exception) { emptyList() } else emptyList()
 
         if (todos.isEmpty() && stickyNotes.isEmpty() && vaultItems.isEmpty() && groceryItems.isEmpty() && wishlistItems.isEmpty() && customModules.isEmpty()) {
-            seedSampleData()
+            seedSampleData(language)
         }
     }
 
@@ -245,61 +257,118 @@ class DataStore private constructor(context: Context) {
     }
 
     // MARK: - Sample Data & Reset
-    fun seedSampleData() {
-        todos = listOf(
-            TodoItem(title = "出门关掉厨房燃气与电源", priority = TodoPriority.URGENT, reminderMinutes = 15),
-            TodoItem(title = "去菜鸟驿站取快件包裹", priority = TodoPriority.NORMAL, reminderMinutes = 30),
-            TodoItem(title = "整理周末徒步装备清单", priority = TodoPriority.SOMEDAY)
-        )
-        stickyNotes = listOf(
-            StickyNoteItem(content = "今天晚霞特别美，像打翻了粉橙色的气泡水 🌇", moodEmoji = "✨", colorHex = "#FFF7D1"),
-            StickyNoteItem(content = "想法：做一个极简的双语个人第二大脑，清空所有脑雾与琐事 💡", moodEmoji = "💡", colorHex = "#E8F5E9")
-        )
-        vaultItems = listOf(
-            VaultItem(title = "门禁与入户密码", accountOrKey = "入户大门", secretValue = "9527#"),
-            VaultItem(title = "家庭 Wi-Fi 口令", accountOrKey = "5G-Home-Ultra", secretValue = "SuperBrain2026!")
-        )
-        groceryItems = listOf(
-            GroceryItem(name = "羽衣甘蓝 & 罗马生菜", aisle = GroceryAisle.PRODUCE),
-            GroceryItem(name = "高钙燕麦奶 1L", aisle = GroceryAisle.DAIRY),
-            GroceryItem(name = "原切牛眼肉牛排", aisle = GroceryAisle.MEAT)
-        )
-        frequentGroceryList = listOf(
-            GroceryItem(name = "无抗鲜鸡蛋 10枚", aisle = GroceryAisle.PRODUCE, isFrequent = true),
-            GroceryItem(name = "零卡气泡苏打水", aisle = GroceryAisle.SNACKS, isFrequent = true)
-        )
-        wishlistItems = listOf(
-            WishlistItem(
-                title = "降噪头戴式无线耳机",
-                targetPrice = 2299.0,
-                currency = "¥",
-                coolOffDaysTotal = 14,
-                coolOffStartDate = System.currentTimeMillis() - (1000L * 60 * 60 * 24 * 3),
-                notes = "等大促降价，先冷静两周看是否真需降噪"
-            ),
-            WishlistItem(
-                title = "人体工学电脑升降桌",
-                targetPrice = 1699.0,
-                currency = "¥",
-                coolOffDaysTotal = 30,
-                coolOffStartDate = System.currentTimeMillis() - (1000L * 60 * 60 * 24 * 12),
-                notes = "缓解颈椎酸痛"
+    fun seedSampleData(lang: AppLanguage = language) {
+        if (lang == AppLanguage.ENGLISH) {
+            todos = listOf(
+                TodoItem(title = "Turn off kitchen stove & lights before leaving", priority = TodoPriority.URGENT, reminderMinutes = 15),
+                TodoItem(title = "Pick up packages from parcel locker", priority = TodoPriority.NORMAL, reminderMinutes = 30),
+                TodoItem(title = "Pack hiking & outdoor gear for weekend", priority = TodoPriority.SOMEDAY)
             )
-        )
-        customModules = listOf(
-            CustomModule(
-                id = "habit_module",
-                title = "打卡",
-                subtitle = "坚持微小日常，日积月累 ✨",
-                icon = "target",
-                themeColorHex = "#4D88FF",
-                entries = listOf(
-                    CustomEntryItem(icon = "🏃", title = "晨跑锻炼", detail = "有氧 20 分钟", streakDays = 7, isCompleted = true),
-                    CustomEntryItem(icon = "💧", title = "多喝水", detail = "每天 8 杯温水", streakDays = 12, isCompleted = true),
-                    CustomEntryItem(icon = "📖", title = "每日阅读", detail = "读 10 页好书", streakDays = 5, isCompleted = false)
+            stickyNotes = listOf(
+                StickyNoteItem(content = "Gorgeous sunset today, looks like fizzy peach soda spilled across the sky 🌇", moodEmoji = "✨", colorHex = "#FFF7D1"),
+                StickyNoteItem(content = "Idea: A minimal second brain to clear all brain fog & mental clutter 💡", moodEmoji = "💡", colorHex = "#E8F5E9")
+            )
+            vaultItems = listOf(
+                VaultItem(title = "Home Gate & Entry Code", accountOrKey = "Front Door", secretValue = "9527#"),
+                VaultItem(title = "Home Wi-Fi Password", accountOrKey = "5G-Home-Ultra", secretValue = "SuperBrain2026!")
+            )
+            groceryItems = listOf(
+                GroceryItem(name = "Organic Kale & Romaine Lettuce", aisle = GroceryAisle.PRODUCE),
+                GroceryItem(name = "High Calcium Oat Milk 1L", aisle = GroceryAisle.DAIRY),
+                GroceryItem(name = "Prime Ribeye Steak", aisle = GroceryAisle.MEAT)
+            )
+            frequentGroceryList = listOf(
+                GroceryItem(name = "Fresh Organic Eggs 10-pack", aisle = GroceryAisle.PRODUCE, isFrequent = true),
+                GroceryItem(name = "Zero Calorie Sparkling Soda", aisle = GroceryAisle.SNACKS, isFrequent = true)
+            )
+            wishlistItems = listOf(
+                WishlistItem(
+                    title = "Noise-Canceling Wireless Headphones",
+                    targetPrice = 299.0,
+                    currency = "$",
+                    coolOffDaysTotal = 14,
+                    coolOffStartDate = System.currentTimeMillis() - (1000L * 60 * 60 * 24 * 3),
+                    notes = "Wait for seasonal sale, test if truly needed"
+                ),
+                WishlistItem(
+                    title = "Ergonomic Standing Desk",
+                    targetPrice = 399.0,
+                    currency = "$",
+                    coolOffDaysTotal = 30,
+                    coolOffStartDate = System.currentTimeMillis() - (1000L * 60 * 60 * 24 * 12),
+                    notes = "Relieve neck and back strain"
                 )
             )
-        )
+            customModules = listOf(
+                CustomModule(
+                    id = "habit_module",
+                    title = "Check-in",
+                    subtitle = "Small daily habits, compounding over time ✨",
+                    icon = "target",
+                    themeColorHex = "#4D88FF",
+                    entries = listOf(
+                        CustomEntryItem(icon = "🏃", title = "Morning Run", detail = "20 mins cardio", streakDays = 7, isCompleted = true),
+                        CustomEntryItem(icon = "💧", title = "Drink Water", detail = "8 cups of water daily", streakDays = 12, isCompleted = true),
+                        CustomEntryItem(icon = "📖", title = "Daily Reading", detail = "Read 10 pages of a good book", streakDays = 5, isCompleted = false)
+                    )
+                )
+            )
+        } else {
+            todos = listOf(
+                TodoItem(title = "出门关掉厨房燃气与电源", priority = TodoPriority.URGENT, reminderMinutes = 15),
+                TodoItem(title = "去菜鸟驿站取快件包裹", priority = TodoPriority.NORMAL, reminderMinutes = 30),
+                TodoItem(title = "整理周末徒步装备清单", priority = TodoPriority.SOMEDAY)
+            )
+            stickyNotes = listOf(
+                StickyNoteItem(content = "今天晚霞特别美，像打翻了粉橙色的气泡水 🌇", moodEmoji = "✨", colorHex = "#FFF7D1"),
+                StickyNoteItem(content = "想法：做一个极简的双语个人第二大脑，清空所有脑雾与琐事 💡", moodEmoji = "💡", colorHex = "#E8F5E9")
+            )
+            vaultItems = listOf(
+                VaultItem(title = "门禁与入户密码", accountOrKey = "入户大门", secretValue = "9527#"),
+                VaultItem(title = "家庭 Wi-Fi 口令", accountOrKey = "5G-Home-Ultra", secretValue = "SuperBrain2026!")
+            )
+            groceryItems = listOf(
+                GroceryItem(name = "羽衣甘蓝 & 罗马生菜", aisle = GroceryAisle.PRODUCE),
+                GroceryItem(name = "高钙燕麦奶 1L", aisle = GroceryAisle.DAIRY),
+                GroceryItem(name = "原切牛眼肉牛排", aisle = GroceryAisle.MEAT)
+            )
+            frequentGroceryList = listOf(
+                GroceryItem(name = "无抗鲜鸡蛋 10枚", aisle = GroceryAisle.PRODUCE, isFrequent = true),
+                GroceryItem(name = "零卡气泡苏打水", aisle = GroceryAisle.SNACKS, isFrequent = true)
+            )
+            wishlistItems = listOf(
+                WishlistItem(
+                    title = "降噪头戴式无线耳机",
+                    targetPrice = 2299.0,
+                    currency = "¥",
+                    coolOffDaysTotal = 14,
+                    coolOffStartDate = System.currentTimeMillis() - (1000L * 60 * 60 * 24 * 3),
+                    notes = "等大促降价，先冷静两周看是否真需降噪"
+                ),
+                WishlistItem(
+                    title = "人体工学电脑升降桌",
+                    targetPrice = 1699.0,
+                    currency = "¥",
+                    coolOffDaysTotal = 30,
+                    coolOffStartDate = System.currentTimeMillis() - (1000L * 60 * 60 * 24 * 12),
+                    notes = "缓解颈椎酸痛"
+                )
+            )
+            customModules = listOf(
+                CustomModule(
+                    id = "habit_module",
+                    title = "打卡",
+                    subtitle = "坚持微小日常，日积月累 ✨",
+                    icon = "target",
+                    themeColorHex = "#4D88FF",
+                    entries = listOf(
+                        CustomEntryItem(icon = "🏃", title = "晨跑锻炼", detail = "有氧 20 分钟", streakDays = 7, isCompleted = true),
+                        CustomEntryItem(icon = "💧", title = "多喝水", detail = "每天 8 杯温水", streakDays = 12, isCompleted = true),
+                        CustomEntryItem(icon = "📖", title = "每日阅读", detail = "读 10 页好书", streakDays = 5, isCompleted = false)
+                    )
+                )
+            )
+        }
 
         saveTodos()
         saveNotes()
@@ -320,8 +389,8 @@ class DataStore private constructor(context: Context) {
         customModules = listOf(
             CustomModule(
                 id = "habit_module",
-                title = "打卡",
-                subtitle = "坚持微小日常，日积月累 ✨",
+                title = if (language == AppLanguage.ENGLISH) "Check-in" else "打卡",
+                subtitle = if (language == AppLanguage.ENGLISH) "Small daily habits, compounding over time ✨" else "坚持微小日常，日积月累 ✨",
                 icon = "target",
                 themeColorHex = "#4D88FF",
                 entries = emptyList()
