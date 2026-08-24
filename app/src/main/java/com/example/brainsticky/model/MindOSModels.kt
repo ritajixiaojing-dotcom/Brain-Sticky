@@ -161,7 +161,8 @@ data class CustomEntryItem(
     val detail: String = "",
     val isCompleted: Boolean = false,
     val streakDays: Int = 0,
-    val lastCompletedDate: String = ""
+    val lastCompletedDate: String = "",
+    val historyDates: List<String> = emptyList()
 )
 
 @Serializable

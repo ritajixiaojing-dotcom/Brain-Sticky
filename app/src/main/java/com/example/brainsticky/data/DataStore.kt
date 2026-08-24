@@ -85,11 +85,19 @@ class DataStore private constructor(context: Context) {
         val wishlistJson = prefs.getString("wishlist", null)
         wishlistItems = if (wishlistJson != null) try { json.decodeFromString(wishlistJson) } catch (e: Exception) { emptyList() } else emptyList()
 
-        val customJson = prefs.getString("custom_modules", null)
-        customModules = if (customJson != null) try { json.decodeFromString(customJson) } catch (e: Exception) { emptyList() } else emptyList()
-
         if (todos.isEmpty() && stickyNotes.isEmpty() && vaultItems.isEmpty() && groceryItems.isEmpty() && wishlistItems.isEmpty() && customModules.isEmpty()) {
             seedSampleData(language)
+        } else {
+            // Auto-refresh daily check-in state for the new day
+            val todayStr = getTodayDateString()
+            customModules = customModules.map { mod ->
+                mod.copy(
+                    entries = mod.entries.map { entry ->
+                        val isCheckedToday = entry.lastCompletedDate == todayStr
+                        entry.copy(isCompleted = isCheckedToday)
+                    }
+                )
+            }
         }
     }
 
@@ -213,15 +221,53 @@ class DataStore private constructor(context: Context) {
         saveWishlist()
     }
 
-    // MARK: - Custom Habits
+    private fun getTodayDateString(): String {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        return sdf.format(java.util.Date())
+    }
+
+    private fun getYesterdayDateString(): String {
+        val cal = java.util.Calendar.getInstance()
+        cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        return sdf.format(cal.time)
+    }
+
+    // MARK: - Custom Habits (Real Date-based Streak Calculation)
     fun toggleHabitEntry(moduleId: String, entryId: String) {
+        val todayStr = getTodayDateString()
+        val yesterdayStr = getYesterdayDateString()
+
         customModules = customModules.map { mod ->
             if (mod.id == moduleId) {
                 val updatedEntries = mod.entries.map { entry ->
                     if (entry.id == entryId) {
-                        val newCompleted = !entry.isCompleted
-                        val newStreak = if (newCompleted) entry.streakDays + 1 else (entry.streakDays - 1).coerceAtLeast(0)
-                        entry.copy(isCompleted = newCompleted, streakDays = newStreak)
+                        val isCheckingIn = !entry.isCompleted
+                        if (isCheckingIn) {
+                            // Calculate genuine streak: if last check-in was yesterday, streak + 1
+                            val newStreak = when (entry.lastCompletedDate) {
+                                yesterdayStr -> entry.streakDays + 1
+                                todayStr -> entry.streakDays.coerceAtLeast(1)
+                                else -> if (entry.streakDays > 0 && entry.lastCompletedDate.isNotBlank()) 1 else (entry.streakDays + 1).coerceAtLeast(1)
+                            }
+                            val updatedHistory = (entry.historyDates + todayStr).distinct()
+                            entry.copy(
+                                isCompleted = true,
+                                streakDays = newStreak,
+                                lastCompletedDate = todayStr,
+                                historyDates = updatedHistory
+                            )
+                        } else {
+                            // Unchecking today's check-in
+                            val newStreak = (entry.streakDays - 1).coerceAtLeast(0)
+                            val updatedHistory = entry.historyDates.filter { it != todayStr }
+                            entry.copy(
+                                isCompleted = false,
+                                streakDays = newStreak,
+                                lastCompletedDate = updatedHistory.lastOrNull() ?: "",
+                                historyDates = updatedHistory
+                            )
+                        }
                     } else entry
                 }
                 mod.copy(entries = updatedEntries)
