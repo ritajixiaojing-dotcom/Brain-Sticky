@@ -186,8 +186,8 @@ public struct CustomModuleDetailView: View {
             onDeleteRequest: {
                 entryToDelete = item
             },
-            onAlreadyCheckedIn: { title, icon, countdown in
-                alreadyCheckedInAlertInfo = AlreadyCheckedInInfo(title: title, icon: icon, countdown: countdown)
+            onAlreadyCheckedIn: { title, icon in
+                alreadyCheckedInAlertInfo = AlreadyCheckedInInfo(title: title, icon: icon)
             }
         )
         .listRowBackground(Color.clear)
@@ -530,25 +530,50 @@ public struct CustomModuleDetailView: View {
         .padding(.vertical, 4)
     }
     
-    // 快捷从预设栏点选加入单列打卡列表
+    // 快捷从预设栏点选加入单列打卡列表 (防重复添加并提示今日已打卡)
     private func selectPresetHabit(icon: String, name: String, detail: String) {
-        if !module.entries.contains(where: { $0.title == name }) {
+        if let existing = module.entries.first(where: { $0.title == name }) {
+            let isCheckedInToday = (existing.isCompleted || existing.count >= 1) && existing.isWithin24Hours
+            if isCheckedInToday {
+                alreadyCheckedInAlertInfo = AlreadyCheckedInInfo(title: existing.title, icon: existing.icon)
+                HapticManager.shared.notification(.warning)
+            } else {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.65)) {
+                    _ = store.incrementEntryCountInModule(moduleId: module.id, entryId: existing.id)
+                }
+            }
+        } else {
             let entry = CustomEntryItem(title: name, icon: icon, detail: detail, isCompleted: false)
             withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
                 store.addEntryToModule(moduleId: module.id, entry: entry)
             }
             HapticManager.shared.notification(.success)
-        } else {
-            newEntryIcon = icon
-            newEntryTitle = name
-            newEntryDetail = detail
-            HapticManager.shared.selection()
         }
     }
     
     private func quickAddEntry() {
         let title = newEntryTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
+        
+        if let existing = module.entries.first(where: { $0.title == title }) {
+            let isCheckedInToday = (existing.isCompleted || existing.count >= 1) && existing.isWithin24Hours
+            if isCheckedInToday {
+                alreadyCheckedInAlertInfo = AlreadyCheckedInInfo(title: existing.title, icon: existing.icon)
+                HapticManager.shared.notification(.warning)
+                newEntryTitle = ""
+                newEntryDetail = ""
+                isInputFocused = false
+                return
+            } else {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.65)) {
+                    _ = store.incrementEntryCountInModule(moduleId: module.id, entryId: existing.id)
+                }
+                newEntryTitle = ""
+                newEntryDetail = ""
+                isInputFocused = false
+                return
+            }
+        }
         
         let entry = CustomEntryItem(
             title: title,
@@ -672,6 +697,13 @@ struct CreateCustomHabitSheet: View {
                     Button(langManager.currentLanguage == .chinese ? "保存并添加" : "Save & Add") {
                         let title = habitTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !title.isEmpty else { return }
+                        if let mod = store.customModules.first(where: { $0.id == moduleId }),
+                           let existing = mod.entries.first(where: { $0.title == title }) {
+                            // 已存在此项，同步更新预设即可
+                            store.addCustomHabitPreset(name: title, icon: habitIcon, detail: habitDetail)
+                            dismiss()
+                            return
+                        }
                         let entry = CustomEntryItem(
                             title: title,
                             icon: habitIcon,
@@ -705,7 +737,7 @@ struct HabitItemRow: View {
     let themeColor: Color
     var onEdit: () -> Void
     var onDeleteRequest: () -> Void
-    var onAlreadyCheckedIn: (String, String, String) -> Void
+    var onAlreadyCheckedIn: (String, String) -> Void
     @ObservedObject var store = DataStore.shared
     @ObservedObject var langManager = AppLanguageManager.shared
     
@@ -735,17 +767,6 @@ struct HabitItemRow: View {
                         .font(.system(size: 12, design: .rounded))
                         .foregroundColor(.secondary)
                 }
-                
-                if isCheckedInToday {
-                    HStack(spacing: 3) {
-                        Image(systemName: "clock.badge.checkmark")
-                            .font(.system(size: 9.5, weight: .bold))
-                        Text(item.nextCheckInCountdown(isChinese: langManager.currentLanguage == .chinese))
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                    }
-                    .foregroundColor(BentoColors.groceryMint)
-                    .padding(.top, 1)
-                }
             }
             .onTapGesture { onEdit() }
             
@@ -754,16 +775,12 @@ struct HabitItemRow: View {
             // 右侧：打卡按钮 (点击打卡显示今日已打卡，就不能再点了，点了就显示弹出窗口)
             Button(action: {
                 if isCheckedInToday {
-                    onAlreadyCheckedIn(
-                        item.title,
-                        item.icon,
-                        item.nextCheckInCountdown(isChinese: langManager.currentLanguage == .chinese)
-                    )
+                    onAlreadyCheckedIn(item.title, item.icon)
                 } else {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.65)) {
                         let result = store.incrementEntryCountInModule(moduleId: moduleId, entryId: item.id)
-                        if !result.success, let msg = result.message {
-                            onAlreadyCheckedIn(item.title, item.icon, msg)
+                        if !result.success {
+                            onAlreadyCheckedIn(item.title, item.icon)
                         }
                     }
                 }
@@ -1224,8 +1241,8 @@ struct CustomModuleAlertsModifier: ViewModifier {
                 }
             } message: { info in
                 Text(isChinese
-                     ? "「\(info.icon) \(info.title)」今日已打卡，不可重复打卡 ✨\n\(info.countdown)"
-                     : "\"\(info.title)\" has already been checked in today!\n\(info.countdown)")
+                     ? "「\(info.icon) \(info.title)」今日已打卡，不可重复打卡 ✨"
+                     : "\"\(info.title)\" has already been checked in today!")
             }
             .alert(
                 isChinese ? "确认删除此打卡项？" : "Delete Habit Item?",

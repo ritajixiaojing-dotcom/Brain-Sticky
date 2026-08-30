@@ -490,12 +490,10 @@ public struct AlreadyCheckedInInfo: Identifiable {
     public let id = UUID()
     public let title: String
     public let icon: String
-    public let countdown: String
     
-    public init(title: String, icon: String, countdown: String) {
+    public init(title: String, icon: String) {
         self.title = title
         self.icon = icon
-        self.countdown = countdown
     }
 }
 

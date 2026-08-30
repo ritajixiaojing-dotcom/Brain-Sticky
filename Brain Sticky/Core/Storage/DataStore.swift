@@ -261,8 +261,11 @@ public final class DataStore: ObservableObject {
     
     public func addEntryToModule(moduleId: String, entry: CustomEntryItem) {
         if let idx = customModules.firstIndex(where: { $0.id == moduleId }) {
-            customModules[idx].entries.insert(entry, at: 0)
-            HapticManager.shared.notification(.success)
+            if !customModules[idx].entries.contains(where: { $0.title == entry.title }) {
+                customModules[idx].entries.insert(entry, at: 0)
+                saveCustomModules()
+                HapticManager.shared.notification(.success)
+            }
         }
     }
     
@@ -278,11 +281,10 @@ public final class DataStore: ObservableObject {
                 entry.isCompleted = false
             }
             
-            // 如果今日已打卡（已完成打卡且在 24 小时内），则不可再次打卡，返回失败并提示
+            // 如果今日已打卡（已完成打卡且在 24 小时内），则不可再次打卡，返回失败
             if (entry.isCompleted || entry.count >= 1) && entry.isWithin24Hours {
-                let countdown = entry.nextCheckInCountdown(isChinese: AppLanguageManager.shared.currentLanguage == .chinese)
                 HapticManager.shared.notification(.warning)
-                return (false, countdown)
+                return (false, nil)
             }
             
             entry.count = 1
@@ -451,6 +453,22 @@ public final class DataStore: ObservableObject {
             if current == "what a day" || current == "whataday" {
                 customModules[idx].title = "打卡"
                 customModules[idx].icon = "🎯"
+                saveCustomModules()
+            }
+        }
+        
+        // 自动去重打卡清单中的重复同名项目（保留最新状态）
+        for i in 0..<customModules.count {
+            var seenTitles = Set<String>()
+            var uniqueEntries: [CustomEntryItem] = []
+            for entry in customModules[i].entries {
+                if !seenTitles.contains(entry.title) {
+                    seenTitles.insert(entry.title)
+                    uniqueEntries.append(entry)
+                }
+            }
+            if uniqueEntries.count != customModules[i].entries.count {
+                customModules[i].entries = uniqueEntries
                 saveCustomModules()
             }
         }
