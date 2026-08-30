@@ -14,7 +14,7 @@ class DataStore private constructor(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("brain_sticky_data", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = false }
 
-    var language by mutableStateOf(AppLanguage.ENGLISH)
+    var language by mutableStateOf(AppLanguage.CHINESE)
         private set
 
     var searchText by mutableStateOf("")
@@ -40,37 +40,35 @@ class DataStore private constructor(context: Context) {
     var customModules by mutableStateOf<List<CustomModule>>(emptyList())
         private set
 
+    var enableHaptics by mutableStateOf(true)
+        private set
+
     init {
         loadAll()
     }
 
     // MARK: - Language
     fun setAppLanguage(lang: AppLanguage) {
-        val oldLang = language
         language = lang
         prefs.edit().putString("app_lang", lang.code).apply()
-
-        // If data is currently the initial sample data, translate sample data to match the chosen language
-        if (isCurrentlySampleData(oldLang)) {
-            seedSampleData(lang)
-        }
     }
 
-    private fun isCurrentlySampleData(lang: AppLanguage): Boolean {
-        if (todos.isEmpty() || stickyNotes.isEmpty()) return false
-        val firstTodo = todos.firstOrNull()?.title ?: ""
-        return firstTodo == "出门关掉厨房燃气与电源" || firstTodo == "Turn off kitchen stove & lights before leaving"
+    // MARK: - Haptics (触觉震动)
+    fun setHapticsEnabled(enabled: Boolean) {
+        enableHaptics = enabled
+        prefs.edit().putBoolean("enable_haptics", enabled).apply()
     }
 
     // MARK: - Persistence
     private fun loadAll() {
-        val langCode = prefs.getString("app_lang", "en") ?: "en"
-        language = if (langCode == "zh") AppLanguage.CHINESE else AppLanguage.ENGLISH
+        val langCode = prefs.getString("app_lang", "zh") ?: "zh"
+        language = if (langCode == "en") AppLanguage.ENGLISH else AppLanguage.CHINESE
+        enableHaptics = prefs.getBoolean("enable_haptics", true)
 
         val todosJson = prefs.getString("todos", null)
-        todos = if (todosJson != null) try { json.decodeFromString(todosJson) } catch (e: Exception) { emptyList() } else emptyList()
-
         val notesJson = prefs.getString("notes", null)
+
+        todos = if (todosJson != null) try { json.decodeFromString(todosJson) } catch (e: Exception) { emptyList() } else emptyList()
         stickyNotes = if (notesJson != null) try { json.decodeFromString(notesJson) } catch (e: Exception) { emptyList() } else emptyList()
 
         val vaultJson = prefs.getString("vault", null)
@@ -84,6 +82,9 @@ class DataStore private constructor(context: Context) {
 
         val wishlistJson = prefs.getString("wishlist", null)
         wishlistItems = if (wishlistJson != null) try { json.decodeFromString(wishlistJson) } catch (e: Exception) { emptyList() } else emptyList()
+
+        val customModulesJson = prefs.getString("custom_modules", null)
+        customModules = if (customModulesJson != null) try { json.decodeFromString(customModulesJson) } catch (e: Exception) { emptyList() } else emptyList()
 
         if (customModules.isEmpty()) {
             customModules = listOf(
@@ -118,20 +119,37 @@ class DataStore private constructor(context: Context) {
     private fun saveWishlist() = prefs.edit().putString("wishlist", json.encodeToString(wishlistItems)).apply()
     private fun saveCustomModules() = prefs.edit().putString("custom_modules", json.encodeToString(customModules)).apply()
 
+    private val appContext: Context = context.applicationContext
+
     // MARK: - Todos
     fun addTodo(item: TodoItem) {
         todos = listOf(item) + todos
         saveTodos()
+        com.example.brainsticky.notifications.TodoReminderManager.scheduleTodoReminder(appContext, item)
     }
     fun toggleTodo(id: String) {
         todos = todos.map { if (it.id == id) it.copy(isCompleted = !it.isCompleted) else it }
         saveTodos()
+        val item = todos.find { it.id == id }
+        if (item != null) {
+            if (item.isCompleted) {
+                com.example.brainsticky.notifications.TodoReminderManager.cancelTodoReminder(appContext, id)
+            } else {
+                com.example.brainsticky.notifications.TodoReminderManager.scheduleTodoReminder(appContext, item)
+            }
+        }
     }
     fun updateTodo(item: TodoItem) {
         todos = todos.map { if (it.id == item.id) item else it }
         saveTodos()
+        if (item.isCompleted) {
+            com.example.brainsticky.notifications.TodoReminderManager.cancelTodoReminder(appContext, item.id)
+        } else {
+            com.example.brainsticky.notifications.TodoReminderManager.scheduleTodoReminder(appContext, item)
+        }
     }
     fun deleteTodo(id: String) {
+        com.example.brainsticky.notifications.TodoReminderManager.cancelTodoReminder(appContext, id)
         todos = todos.filter { it.id != id }
         saveTodos()
     }
@@ -234,7 +252,6 @@ class DataStore private constructor(context: Context) {
         val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
         return sdf.format(java.util.Date())
     }
-
     private fun getYesterdayDateString(): String {
         val cal = java.util.Calendar.getInstance()
         cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
@@ -242,8 +259,8 @@ class DataStore private constructor(context: Context) {
         return sdf.format(cal.time)
     }
 
-    // MARK: - Custom Habits (Real Date-based Streak Calculation)
-    fun toggleHabitEntry(moduleId: String, entryId: String) {
+    // MARK: - Custom Habits (Cumulative Daily Count & Streak Calculation)
+    fun incrementHabitEntry(moduleId: String, entryId: String) {
         val todayStr = getTodayDateString()
         val yesterdayStr = getYesterdayDateString()
 
@@ -251,32 +268,22 @@ class DataStore private constructor(context: Context) {
             if (mod.id == moduleId) {
                 val updatedEntries = mod.entries.map { entry ->
                     if (entry.id == entryId) {
-                        val isCheckingIn = !entry.isCompleted
-                        if (isCheckingIn) {
-                            // Calculate genuine streak: if last check-in was yesterday, streak + 1
-                            val newStreak = when (entry.lastCompletedDate) {
-                                yesterdayStr -> entry.streakDays + 1
-                                todayStr -> entry.streakDays.coerceAtLeast(1)
-                                else -> if (entry.streakDays > 0 && entry.lastCompletedDate.isNotBlank()) 1 else (entry.streakDays + 1).coerceAtLeast(1)
-                            }
-                            val updatedHistory = (entry.historyDates + todayStr).distinct()
-                            entry.copy(
-                                isCompleted = true,
-                                streakDays = newStreak,
-                                lastCompletedDate = todayStr,
-                                historyDates = updatedHistory
-                            )
-                        } else {
-                            // Unchecking today's check-in
-                            val newStreak = (entry.streakDays - 1).coerceAtLeast(0)
-                            val updatedHistory = entry.historyDates.filter { it != todayStr }
-                            entry.copy(
-                                isCompleted = false,
-                                streakDays = newStreak,
-                                lastCompletedDate = updatedHistory.lastOrNull() ?: "",
-                                historyDates = updatedHistory
-                            )
+                        val isFirstToday = entry.lastCompletedDate != todayStr
+                        val newCount = if (isFirstToday) 1 else entry.count + 1
+                        val newStreak = when (entry.lastCompletedDate) {
+                            yesterdayStr -> entry.streakDays + 1
+                            todayStr -> entry.streakDays.coerceAtLeast(1)
+                            else -> if (entry.streakDays > 0 && entry.lastCompletedDate.isNotBlank()) 1 else (entry.streakDays + 1).coerceAtLeast(1)
                         }
+                        val updatedHistory = (entry.historyDates + todayStr).distinct()
+                        entry.copy(
+                            isCompleted = true,
+                            count = newCount,
+                            streakDays = newStreak,
+                            lastCompletedDate = todayStr,
+                            historyDates = updatedHistory,
+                            lastCheckedInTimestamp = System.currentTimeMillis()
+                        )
                     } else entry
                 }
                 mod.copy(entries = updatedEntries)
@@ -284,6 +291,33 @@ class DataStore private constructor(context: Context) {
         }
         saveCustomModules()
     }
+
+    fun toggleHabitEntry(moduleId: String, entryId: String) {
+        incrementHabitEntry(moduleId, entryId)
+    }
+
+    fun resetAllHabitCounts(moduleId: String) {
+        customModules = customModules.map { mod ->
+            if (mod.id == moduleId) {
+                val updatedEntries = mod.entries.map { entry ->
+                    entry.copy(
+                        isCompleted = false,
+                        count = 0
+                    )
+                }
+                mod.copy(entries = updatedEntries)
+            } else mod
+        }
+        saveCustomModules()
+    }
+
+    fun clearAllHabitEntries(moduleId: String) {
+        customModules = customModules.map { mod ->
+            if (mod.id == moduleId) mod.copy(entries = emptyList()) else mod
+        }
+        saveCustomModules()
+    }
+
     fun addHabitEntry(moduleId: String, entry: CustomEntryItem) {
         customModules = customModules.map { mod ->
             if (mod.id == moduleId) mod.copy(entries = mod.entries + entry) else mod

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -101,6 +102,45 @@ fun SettingsScreen(
                 }
             }
 
+            // Haptics (触觉震动) Section
+            item {
+                SettingsSectionCard(
+                    title = if (lang == AppLanguage.CHINESE) "触觉震动" else "Haptics"
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp, horizontal = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.TouchApp,
+                                contentDescription = null,
+                                tint = BentoColors.NoteAmber
+                            )
+                            Text(
+                                if (lang == AppLanguage.CHINESE) "触觉震动 (Haptics)" else "Haptic Vibration (Haptics)",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Switch(
+                            checked = dataStore.enableHaptics,
+                            onCheckedChange = { dataStore.setHapticsEnabled(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = BentoColors.NoteAmber
+                            )
+                        )
+                    }
+                }
+            }
+
             // Data Management Section
             item {
                 SettingsSectionCard(
@@ -124,7 +164,7 @@ fun SettingsScreen(
                             )
                         }
 
-                        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
 
                         Row(
                             modifier = Modifier
@@ -163,7 +203,7 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
                             Text(
-                                text = "1.0.0 (Android Build)",
+                                text = "1.1.0 (Android Build)",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface

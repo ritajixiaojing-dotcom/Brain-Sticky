@@ -22,10 +22,21 @@ import com.example.brainsticky.ui.todo.TodoScreen
 import com.example.brainsticky.ui.vault.VaultScreen
 import com.example.brainsticky.ui.wishlist.WishlistScreen
 
+import androidx.compose.runtime.saveable.rememberSaveable
+import android.os.Build
+import android.content.pm.PackageManager
+import android.Manifest
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
 
         val dataStore = DataStore.getInstance(this)
 
@@ -35,7 +46,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    var currentRoute by remember { mutableStateOf(ScreenRoute.DASHBOARD) }
+                    var currentRoute by rememberSaveable { mutableStateOf(ScreenRoute.DASHBOARD) }
 
                     val navigateToHome = {
                         dataStore.searchText = ""

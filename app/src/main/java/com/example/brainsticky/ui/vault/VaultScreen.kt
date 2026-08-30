@@ -41,13 +41,14 @@ fun VaultScreen(
     val lang = dataStore.language
     var isShowingAddDialog by remember { mutableStateOf(false) }
     var zoomItem by remember { mutableStateOf<VaultItem?>(null) }
+    var vaultToDelete by remember { mutableStateOf<VaultItem?>(null) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        if (lang == AppLanguage.CHINESE) "密码钥匙盒" else "Password Vault",
+                        if (lang == AppLanguage.CHINESE) "密码钥匙盒" else "Password Box",
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -75,6 +76,42 @@ fun VaultScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Central Add Input Bar (与日常/待办/买菜统一风格)
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isShowingAddDialog = true }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(text = "🔐", fontSize = 18.sp)
+                        Text(
+                            text = if (lang == AppLanguage.CHINESE) "✨ 新建钥匙与密码账号..." else "✨ Add new secret or password...",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add",
+                        tint = BentoColors.VaultViolet,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
             if (dataStore.vaultItems.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -98,17 +135,56 @@ fun VaultScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(dataStore.vaultItems, key = { it.id }) { item ->
-                        VaultCardRow(
-                            item = item,
-                            lang = lang,
-                            onToggleMask = { dataStore.toggleVaultMask(item.id) },
-                            onZoom = { zoomItem = item },
-                            onDelete = { dataStore.deleteVaultItem(item.id) }
-                        )
+                        com.example.brainsticky.ui.components.SwipeToDeleteContainer(
+                            onDelete = { vaultToDelete = item },
+                            deleteLabel = if (lang == AppLanguage.CHINESE) "删除" else "Delete"
+                        ) {
+                            VaultCardRow(
+                                item = item,
+                                lang = lang,
+                                onToggleMask = { dataStore.toggleVaultMask(item.id) },
+                                onZoom = { zoomItem = item },
+                                onDelete = { vaultToDelete = item }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    // Delete Confirmation Dialog
+    vaultToDelete?.let { item ->
+        AlertDialog(
+            onDismissRequest = { vaultToDelete = null },
+            title = {
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "确认删除此密码记录？" else "Delete Password Item?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "确定要删除「${item.title}」的密码记录吗？" else "Are you sure you want to delete \"${item.title}\"?"
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        dataStore.deleteVaultItem(item.id)
+                        vaultToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(if (lang == AppLanguage.CHINESE) "删除" else "Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { vaultToDelete = null }) {
+                    Text(if (lang == AppLanguage.CHINESE) "取消" else "Cancel")
+                }
+            }
+        )
     }
 
     if (isShowingAddDialog) {

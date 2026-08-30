@@ -135,7 +135,7 @@ fun BentoDashboardScreen(
                                         text = if (totalClouds == 0) {
                                             if (lang == AppLanguage.CHINESE) "✨ 脑袋放空" else "✨ Mind Clear"
                                         } else {
-                                            if (lang == AppLanguage.CHINESE) "📝 $totalClouds 项记录" else "📝 $totalClouds Items"
+                                            if (lang == AppLanguage.CHINESE) "☁️ $totalClouds 朵" else "☁️ $totalClouds Clouds"
                                         },
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.ExtraBold,

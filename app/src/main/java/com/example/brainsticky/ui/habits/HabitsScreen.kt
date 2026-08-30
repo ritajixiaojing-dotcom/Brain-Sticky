@@ -38,6 +38,9 @@ fun HabitsScreen(
     val lang = dataStore.language
     val habitModule = dataStore.customModules.firstOrNull()
     var isShowingAddDialog by remember { mutableStateOf(false) }
+    var isShowingClearConfirmDialog by remember { mutableStateOf(false) }
+    var habitToDelete by remember { mutableStateOf<CustomEntryItem?>(null) }
+    var isMenuExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -56,6 +59,13 @@ fun HabitsScreen(
                 actions = {
                     IconButton(onClick = { isShowingAddDialog = true }) {
                         Icon(Icons.Default.Add, contentDescription = "Add")
+                    }
+                    IconButton(onClick = { isShowingClearConfirmDialog = true }) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Clear",
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -91,20 +101,114 @@ fun HabitsScreen(
                     }
                 }
             } else {
+                val context = androidx.compose.ui.platform.LocalContext.current
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(habitModule.entries, key = { it.id }) { entry ->
-                        HabitItemCard(
-                            entry = entry,
-                            lang = lang,
-                            onToggle = { dataStore.toggleHabitEntry(habitModule.id, entry.id) },
-                            onDelete = { dataStore.deleteHabitEntry(habitModule.id, entry.id) }
-                        )
+                        com.example.brainsticky.ui.components.SwipeToDeleteContainer(
+                            onDelete = { habitToDelete = entry },
+                            deleteLabel = if (lang == AppLanguage.CHINESE) "删除" else "Delete"
+                        ) {
+                            HabitItemCard(
+                                entry = entry,
+                                lang = lang,
+                                onIncrement = {
+                                    dataStore.incrementHabitEntry(habitModule.id, entry.id)
+                                    val newCount = entry.count + 1
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        if (lang == AppLanguage.CHINESE) "${entry.icon}【${entry.title}】今日第 $newCount 次打卡！✨" else "✓ Checked in for ${entry.title} (#$newCount)!",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                onDelete = { habitToDelete = entry }
+                            )
+                        }
                     }
                 }
             }
+        }
+    }
+
+    // Clear All Habits Dialog
+    if (isShowingClearConfirmDialog && habitModule != null) {
+        AlertDialog(
+            onDismissRequest = { isShowingClearConfirmDialog = false },
+            title = {
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "清除打卡记录？" else "Clear Habit Records?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "您可以选择重置今日所有打卡计数，或者清空打卡列表中的全部项目。" else "Reset today's check-in counts or clear all items."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        dataStore.resetAllHabitCounts(habitModule.id)
+                        isShowingClearConfirmDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = BentoColors.OmniElectric)
+                ) {
+                    Text(if (lang == AppLanguage.CHINESE) "重置今日打卡 (清零)" else "Reset Today")
+                }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    TextButton(
+                        onClick = {
+                            dataStore.clearAllHabitEntries(habitModule.id)
+                            isShowingClearConfirmDialog = false
+                        }
+                    ) {
+                        Text(if (lang == AppLanguage.CHINESE) "清空全部项目" else "Clear All", color = MaterialTheme.colorScheme.error)
+                    }
+                    TextButton(onClick = { isShowingClearConfirmDialog = false }) {
+                        Text(if (lang == AppLanguage.CHINESE) "取消" else "Cancel")
+                    }
+                }
+            }
+        )
+    }
+
+    // Delete Single Habit Confirmation Dialog
+    habitToDelete?.let { entry ->
+        if (habitModule != null) {
+            AlertDialog(
+                onDismissRequest = { habitToDelete = null },
+                title = {
+                    Text(
+                        text = if (lang == AppLanguage.CHINESE) "确认删除此打卡项？" else "Delete Habit?",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(
+                        text = if (lang == AppLanguage.CHINESE) "确定要删除「${entry.icon} ${entry.title}」吗？" else "Are you sure you want to delete \"${entry.title}\"?"
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            dataStore.deleteHabitEntry(habitModule.id, entry.id)
+                            habitToDelete = null
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text(if (lang == AppLanguage.CHINESE) "删除" else "Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { habitToDelete = null }) {
+                        Text(if (lang == AppLanguage.CHINESE) "取消" else "Cancel")
+                    }
+                }
+            )
         }
     }
 
@@ -121,7 +225,7 @@ fun HabitsScreen(
 fun HabitItemCard(
     entry: CustomEntryItem,
     lang: AppLanguage,
-    onToggle: () -> Unit,
+    onIncrement: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -140,7 +244,7 @@ fun HabitItemCard(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Text(
                     text = entry.title,
@@ -159,80 +263,90 @@ fun HabitItemCard(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(BentoColors.OmniElectric.copy(alpha = 0.12f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = if (lang == AppLanguage.CHINESE) "🔥 连续 ${entry.streakDays} 天" else "🔥 ${entry.streakDays}d streak",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = BentoColors.OmniElectric
-                        )
-                    }
-
-                    val totalDays = entry.historyDates.size.coerceAtLeast(entry.streakDays)
-                    if (totalDays > 0) {
+                    if (entry.count > 0) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(BentoColors.NoteAmber.copy(alpha = 0.15f))
+                                .background(BentoColors.GroceryMint.copy(alpha = 0.15f))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = if (lang == AppLanguage.CHINESE) "⭐️ 累计 $totalDays 天" else "⭐️ $totalDays d total",
+                                text = if (lang == AppLanguage.CHINESE) "今日 ${entry.count} 次" else "${entry.count} today",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = BentoColors.NoteAmber
+                                color = BentoColors.GroceryMint
+                            )
+                        }
+                    }
+
+                    if (entry.streakDays > 0) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(BentoColors.OmniElectric.copy(alpha = 0.12f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "🔥 连续 ${entry.streakDays} 天" else "🔥 ${entry.streakDays}d",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BentoColors.OmniElectric
                             )
                         }
                     }
                 }
+
+                if (entry.count >= 2) {
+                    Text(
+                        text = "⏳ " + entry.nextCheckInCountdown(lang),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = BentoColors.GroceryMint
+                    )
+                }
             }
 
-            // Big Check-in Button
+            // Big Check-in +1 Button
             Button(
-                onClick = onToggle,
+                onClick = onIncrement,
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (entry.isCompleted) BentoColors.GroceryMint else BentoColors.OmniElectric
+                    containerColor = if (entry.count > 0) BentoColors.GroceryMint else BentoColors.OmniElectric
                 ),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    if (entry.isCompleted) {
-                        Icon(Icons.Default.Check, contentDescription = "Done", tint = Color.White, modifier = Modifier.size(16.dp))
+                    if (entry.count >= 2) {
+                        Icon(Icons.Default.Check, contentDescription = "Done", tint = Color.White, modifier = Modifier.size(15.dp))
+                        Text(
+                            text = if (lang == AppLanguage.CHINESE) "今日已打卡 (${entry.count}次)" else "Done Today (${entry.count})",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 12.sp,
+                            color = Color.White
+                        )
+                    } else if (entry.count == 1) {
+                        Icon(Icons.Default.Check, contentDescription = "Done", tint = Color.White, modifier = Modifier.size(15.dp))
+                        Text(
+                            text = if (lang == AppLanguage.CHINESE) "今日 1 次 +1" else "1 today +1",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 12.sp,
+                            color = Color.White
+                        )
+                    } else {
+                        Icon(Icons.Default.Add, contentDescription = "Add", tint = Color.White, modifier = Modifier.size(15.dp))
+                        Text(
+                            text = if (lang == AppLanguage.CHINESE) "打卡 +1" else "Check-in +1",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 12.sp,
+                            color = Color.White
+                        )
                     }
-                    Text(
-                        text = if (entry.isCompleted) {
-                            if (lang == AppLanguage.CHINESE) "✓ 今日已打卡" else "✓ Done Today"
-                        } else {
-                            if (lang == AppLanguage.CHINESE) "✨ 打卡 +1" else "✨ Check-in"
-                        },
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 12.sp,
-                        color = Color.White
-                    )
                 }
-            }
-
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(24.dp)
-            ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                    modifier = Modifier.size(16.dp)
-                )
             }
         }
     }
@@ -247,6 +361,19 @@ fun AddHabitDialog(
     var icon by remember { mutableStateOf("⭐️") }
     var title by remember { mutableStateOf("") }
     var detail by remember { mutableStateOf("") }
+
+    val commitSave = {
+        if (title.isNotBlank()) {
+            onSave(
+                CustomEntryItem(
+                    icon = icon.ifBlank { "⭐️" },
+                    title = title.trim(),
+                    detail = detail.trim()
+                )
+            )
+            onDismiss()
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -362,18 +489,7 @@ fun AddHabitDialog(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     Button(
-                        onClick = {
-                            if (title.isNotBlank()) {
-                                onSave(
-                                    CustomEntryItem(
-                                        icon = icon.ifBlank { "⭐️" },
-                                        title = title.trim(),
-                                        detail = detail.trim()
-                                    )
-                                )
-                                onDismiss()
-                            }
-                        },
+                        onClick = commitSave,
                         enabled = title.isNotBlank(),
                         colors = ButtonDefaults.buttonColors(containerColor = BentoColors.OmniElectric)
                     ) {

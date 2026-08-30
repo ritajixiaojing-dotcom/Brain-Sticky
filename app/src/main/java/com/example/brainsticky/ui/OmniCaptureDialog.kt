@@ -29,8 +29,10 @@ fun OmniCaptureDialog(
     var contentText by remember { mutableStateOf("") }
     var selectedMood by remember { mutableStateOf("✨") }
     var selectedColorHex by remember { mutableStateOf("#FFF7D1") }
+    var selectedTextColorHex by remember { mutableStateOf("#1E293B") }
 
     val moods = listOf("✨", "💡", "🌈", "☕️", "💭", "🎯", "🌿", "🌸")
+    val textColors = listOf("#1E293B", "#78350F", "#BE123C", "#065F46", "#1E40AF", "#6B21A8")
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -44,7 +46,7 @@ fun OmniCaptureDialog(
                 modifier = Modifier
                     .padding(20.dp)
                     .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Header Badge
                 Row(
@@ -59,7 +61,7 @@ fun OmniCaptureDialog(
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = if (lang == AppLanguage.CHINESE) "日常" else "Daily",
+                            text = if (lang == AppLanguage.CHINESE) "日常便签" else "Daily Note",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
@@ -75,7 +77,7 @@ fun OmniCaptureDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(140.dp)
+                        .height(130.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(BentoColors.colorForHex(selectedColorHex))
                         .padding(12.dp)
@@ -95,14 +97,20 @@ fun OmniCaptureDialog(
                             unfocusedContainerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            focusedTextColor = Color.Black.copy(alpha = 0.85f),
-                            unfocusedTextColor = Color.Black.copy(alpha = 0.85f)
+                            focusedTextColor = BentoColors.colorForHex(selectedTextColorHex),
+                            unfocusedTextColor = BentoColors.colorForHex(selectedTextColorHex)
                         ),
                         modifier = Modifier.fillMaxSize()
                     )
                 }
 
                 // Pastel Colors Picker
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "便签底色" else "Background",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -112,11 +120,11 @@ fun OmniCaptureDialog(
                         val isSelected = selectedColorHex == hex
                         Box(
                             modifier = Modifier
-                                .size(28.dp)
+                                .size(26.dp)
                                 .clip(CircleShape)
                                 .background(BentoColors.colorForHex(hex))
                                 .border(
-                                    width = if (isSelected) 2.dp else 1.dp,
+                                    width = if (isSelected) 2.5.dp else 1.dp,
                                     color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.1f),
                                     shape = CircleShape
                                 )
@@ -125,10 +133,39 @@ fun OmniCaptureDialog(
                     }
                 }
 
+                // Font Colors Picker
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "字体颜色" else "Font Color",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    textColors.forEach { hex ->
+                        val isSelected = selectedTextColorHex == hex
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(BentoColors.colorForHex(hex))
+                                .border(
+                                    width = if (isSelected) 2.5.dp else 1.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.1f),
+                                    shape = CircleShape
+                                )
+                                .clickable { selectedTextColorHex = hex }
+                        )
+                    }
+                }
+
                 // Mood Emojis
                 Text(
                     text = if (lang == AppLanguage.CHINESE) "选择心情" else "Choose Mood",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
 
@@ -140,7 +177,7 @@ fun OmniCaptureDialog(
                         val isSelected = selectedMood == emoji
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(32.dp)
                                 .clip(CircleShape)
                                 .background(if (isSelected) BentoColors.NoteAmber.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                 .border(
@@ -151,7 +188,7 @@ fun OmniCaptureDialog(
                                 .clickable { selectedMood = emoji },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = emoji, fontSize = 18.sp)
+                            Text(text = emoji, fontSize = 16.sp)
                         }
                     }
                 }
@@ -164,7 +201,8 @@ fun OmniCaptureDialog(
                                 StickyNoteItem(
                                     content = contentText.trim(),
                                     moodEmoji = selectedMood,
-                                    colorHex = selectedColorHex
+                                    colorHex = selectedColorHex,
+                                    textColorHex = selectedTextColorHex
                                 )
                             )
                             onDismiss()

@@ -9,9 +9,12 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -21,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,6 +46,7 @@ fun GroceryScreen(
     var selectedAisle by remember { mutableStateOf(GroceryAisle.PRODUCE) }
     var isShowingFrequentDialog by remember { mutableStateOf(false) }
     var isAisleMenuExpanded by remember { mutableStateOf(false) }
+    var groceryToDelete by remember { mutableStateOf<GroceryItem?>(null) }
 
     val totalCount = dataStore.groceryItems.size
     val boughtCount = dataStore.groceryItems.count { it.isBought }
@@ -49,6 +54,18 @@ fun GroceryScreen(
 
     val groupedItems = remember(dataStore.groceryItems) {
         dataStore.groceryItems.groupBy { it.aisle }
+    }
+
+    val commitAddGrocery = {
+        if (newItemName.isNotBlank()) {
+            dataStore.addGroceryItem(
+                GroceryItem(
+                    name = newItemName.trim(),
+                    aisle = selectedAisle
+                )
+            )
+            newItemName = ""
+        }
     }
 
     Scaffold(
@@ -63,15 +80,6 @@ fun GroceryScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    TextButton(onClick = { isShowingFrequentDialog = true }) {
-                        Text(
-                            text = if (lang == AppLanguage.CHINESE) "常购库" else "Frequent",
-                            fontWeight = FontWeight.Bold,
-                            color = BentoColors.GroceryMint
-                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -130,59 +138,37 @@ fun GroceryScreen(
                 }
             }
 
-            // Floating Category Selector Pills
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(GroceryAisle.entries) { aisle ->
-                    val isSelected = selectedAisle == aisle
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (isSelected) BentoColors.GroceryMint else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            )
-                            .clickable { selectedAisle = aisle }
-                            .padding(horizontal = 12.dp, vertical = 7.dp)
-                    ) {
-                        Text(
-                            text = aisle.getCuteTitle(lang),
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
-
-            // Quick Add Row
+            // Quick Add Row with Left Aisle Category Dropdown Menu
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Aisle Selector Chip with Floating Dropdown Menu
+                // Standalone Left Category Pill
                 Box {
-                    Box(
+                    Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(14.dp))
                             .background(BentoColors.GroceryMint.copy(alpha = 0.15f))
                             .clickable { isAisleMenuExpanded = true }
-                            .padding(horizontal = 10.dp, vertical = 12.dp)
+                            .padding(horizontal = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = selectedAisle.getCuteTitle(lang),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = BentoColors.GroceryMint
-                            )
-                            Text("▾", fontSize = 10.sp, color = BentoColors.GroceryMint)
-                        }
+                        Text(selectedAisle.icon, fontSize = 18.sp)
+                        Text(
+                            text = selectedAisle.getLabel(lang),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BentoColors.GroceryMint
+                        )
+                        Icon(
+                            Icons.Default.ArrowDropDown,
+                            contentDescription = "Select Aisle",
+                            tint = BentoColors.GroceryMint,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
 
                     DropdownMenu(
@@ -192,11 +178,17 @@ fun GroceryScreen(
                         GroceryAisle.entries.forEach { aisle ->
                             DropdownMenuItem(
                                 text = {
-                                    Text(
-                                        text = aisle.getCuteTitle(lang),
-                                        fontWeight = if (selectedAisle == aisle) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (selectedAisle == aisle) BentoColors.GroceryMint else MaterialTheme.colorScheme.onSurface
-                                    )
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(aisle.icon, fontSize = 18.sp)
+                                        Text(
+                                            text = aisle.getLabel(lang),
+                                            fontWeight = if (selectedAisle == aisle) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (selectedAisle == aisle) BentoColors.GroceryMint else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                 },
                                 onClick = {
                                     selectedAisle = aisle
@@ -212,37 +204,31 @@ fun GroceryScreen(
                     onValueChange = { newItemName = it },
                     placeholder = {
                         Text(
-                            if (lang == AppLanguage.CHINESE) "输入想买的物品..." else "Add item...",
+                            if (lang == AppLanguage.CHINESE) "想买点什么呢 🍓..." else "What to buy 🍓...",
                             fontSize = 13.sp
                         )
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { commitAddGrocery() }),
+                    shape = RoundedCornerShape(14.dp),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
                     ),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp)
                 )
 
                 IconButton(
-                    onClick = {
-                        if (newItemName.isNotBlank()) {
-                            dataStore.addGroceryItem(
-                                GroceryItem(
-                                    name = newItemName.trim(),
-                                    aisle = selectedAisle
-                                )
-                            )
-                            newItemName = ""
-                        }
-                    },
+                    onClick = commitAddGrocery,
                     enabled = newItemName.isNotBlank(),
                     modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(14.dp))
                         .background(if (newItemName.isNotBlank()) BentoColors.GroceryMint else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 ) {
                     Icon(
@@ -253,7 +239,7 @@ fun GroceryScreen(
                 }
             }
 
-            // Grocery Aisle Groups List
+            // Clean Unified Grocery Items List
             if (dataStore.groceryItems.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -276,28 +262,18 @@ fun GroceryScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    GroceryAisle.entries.forEach { aisle ->
-                        val itemsInAisle = groupedItems[aisle]
-                        if (!itemsInAisle.isNullOrEmpty()) {
-                            item(key = "header_${aisle.name}") {
-                                Text(
-                                    text = aisle.getCuteTitle(lang),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    modifier = Modifier.padding(start = 4.dp)
-                                )
-                            }
-
-                            items(itemsInAisle, key = { it.id }) { item ->
-                                GroceryItemRow(
-                                    item = item,
-                                    onToggle = { dataStore.toggleGrocery(item.id) },
-                                    onDelete = { dataStore.deleteGroceryItem(item.id) }
-                                )
-                            }
+                    items(dataStore.groceryItems, key = { it.id }) { item ->
+                        com.example.brainsticky.ui.components.SwipeToDeleteContainer(
+                            onDelete = { groceryToDelete = item },
+                            deleteLabel = if (lang == AppLanguage.CHINESE) "删除" else "Delete"
+                        ) {
+                            GroceryItemRow(
+                                item = item,
+                                onToggle = { dataStore.toggleGrocery(item.id) },
+                                onDelete = { groceryToDelete = item }
+                            )
                         }
                     }
                 }
@@ -305,11 +281,37 @@ fun GroceryScreen(
         }
     }
 
-    if (isShowingFrequentDialog) {
-        FrequentGroceryDialog(
-            dataStore = dataStore,
-            lang = lang,
-            onDismiss = { isShowingFrequentDialog = false }
+    // Delete Confirmation Dialog
+    groceryToDelete?.let { item ->
+        AlertDialog(
+            onDismissRequest = { groceryToDelete = null },
+            title = {
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "确认删除此物品？" else "Delete Grocery Item?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "确定要从买菜清单中删除「${item.name}」吗？" else "Are you sure you want to delete \"${item.name}\" from list?"
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        dataStore.deleteGroceryItem(item.id)
+                        groceryToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(if (lang == AppLanguage.CHINESE) "删除" else "Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { groceryToDelete = null }) {
+                    Text(if (lang == AppLanguage.CHINESE) "取消" else "Cancel")
+                }
+            }
         )
     }
 }
@@ -355,6 +357,8 @@ fun GroceryItemRow(
                 }
             }
 
+            Text(item.aisle.icon, fontSize = 18.sp)
+
             Text(
                 text = item.name,
                 fontSize = 14.sp,
@@ -371,125 +375,9 @@ fun GroceryItemRow(
                 Icon(
                     Icons.Default.Delete,
                     contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
                     modifier = Modifier.size(16.dp)
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun FrequentGroceryDialog(
-    dataStore: DataStore,
-    lang: AppLanguage,
-    onDismiss: () -> Unit
-) {
-    var newFreqName by remember { mutableStateOf("") }
-    var newFreqAisle by remember { mutableStateOf(GroceryAisle.PRODUCE) }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 520.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(20.dp)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (lang == AppLanguage.CHINESE) "我的常购库" else "Frequent Items",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
-                    )
-
-                    TextButton(onClick = onDismiss) {
-                        Text(if (lang == AppLanguage.CHINESE) "完成" else "Done")
-                    }
-                }
-
-                // Add frequent item input
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    TextField(
-                        value = newFreqName,
-                        onValueChange = { newFreqName = it },
-                        placeholder = { Text(if (lang == AppLanguage.CHINESE) "添加新常购物品..." else "Add frequent item...") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    IconButton(
-                        onClick = {
-                            if (newFreqName.isNotBlank()) {
-                                dataStore.addFrequentGrocery(
-                                    GroceryItem(
-                                        name = newFreqName.trim(),
-                                        aisle = newFreqAisle,
-                                        isFrequent = true
-                                    )
-                                )
-                                newFreqName = ""
-                            }
-                        }
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Add", tint = BentoColors.GroceryMint)
-                    }
-                }
-
-                // List of frequent items
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(dataStore.frequentGroceryList, key = { it.id }) { item ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(item.aisle.icon)
-                                Text(item.name, fontWeight = FontWeight.Medium, fontSize = 13.sp)
-                            }
-
-                            Button(
-                                onClick = {
-                                    dataStore.addGroceryItem(item.copy(id = java.util.UUID.randomUUID().toString(), isBought = false))
-                                },
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = BentoColors.GroceryMint.copy(alpha = 0.2f)),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = if (lang == AppLanguage.CHINESE) "+ 加入买菜" else "+ Add",
-                                    color = BentoColors.GroceryMint,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
-                            }
-                        }
-                    }
-                }
             }
         }
     }

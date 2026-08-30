@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,12 +26,15 @@ import com.example.brainsticky.model.AppLanguage
 import com.example.brainsticky.model.WishlistCurrency
 import com.example.brainsticky.model.WishlistItem
 import com.example.brainsticky.theme.BentoColors
+import com.example.brainsticky.ui.components.SwipeToDeleteContainer
 
 enum class WishlistTab(val labelZh: String, val labelEn: String) {
     COOLING("冷静 ⏳", "Cooling ⏳"),
     BOUGHT("已买 🛍️", "Bought 🛍️"),
     PASSED("已放弃 🗑️", "Passed 🗑️")
 }
+
+data class CurrencyTotal(val currency: WishlistCurrency, val total: Double)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +45,8 @@ fun WishlistScreen(
     val lang = dataStore.language
     var selectedTab by remember { mutableStateOf(WishlistTab.COOLING) }
     var isShowingAddDialog by remember { mutableStateOf(false) }
+    var editingWishlist by remember { mutableStateOf<WishlistItem?>(null) }
+    var wishlistToDelete by remember { mutableStateOf<WishlistItem?>(null) }
 
     val activeItems = dataStore.wishlistItems.filter { !it.isPurchased && !it.isAbandoned }
     val boughtItems = dataStore.wishlistItems.filter { it.isPurchased }
@@ -52,15 +58,38 @@ fun WishlistScreen(
         WishlistTab.PASSED -> passedItems
     }
 
-    val totalActiveBudget = activeItems.sumOf { it.targetPrice }
-    val totalSavedBudget = passedItems.sumOf { it.targetPrice }
+    val activeCurrencyTotals = remember(activeItems) {
+        val groups = activeItems.groupBy { WishlistCurrency.fromSymbol(it.currency) }
+        WishlistCurrency.entries.mapNotNull { curr ->
+            val items = groups[curr]
+            if (!items.isNullOrEmpty()) {
+                val sum = items.sumOf { it.targetPrice }
+                if (sum != 0.0) CurrencyTotal(curr, sum) else null
+            } else null
+        }.ifEmpty {
+            listOf(CurrencyTotal(WishlistCurrency.CNY, 0.0))
+        }
+    }
+
+    val savedCurrencyTotals = remember(passedItems) {
+        val groups = passedItems.groupBy { WishlistCurrency.fromSymbol(it.currency) }
+        WishlistCurrency.entries.mapNotNull { curr ->
+            val items = groups[curr]
+            if (!items.isNullOrEmpty()) {
+                val sum = items.sumOf { it.targetPrice }
+                if (sum != 0.0) CurrencyTotal(curr, sum) else null
+            } else null
+        }.ifEmpty {
+            listOf(CurrencyTotal(WishlistCurrency.CNY, 0.0))
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        if (lang == AppLanguage.CHINESE) "心愿与冷静期" else "Wishlist & Cool-off",
+                        if (lang == AppLanguage.CHINESE) "剁手" else "Wishlist",
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -103,16 +132,20 @@ fun WishlistScreen(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = if (lang == AppLanguage.CHINESE) "冷静中心愿总额" else "Active Wishlist Total",
+                            text = if (lang == AppLanguage.CHINESE) "剁手总额" else "Active Total",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
-                        Text(
-                            text = "¥${totalActiveBudget.toLong()}",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Black,
-                            color = BentoColors.WishlistRuby
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            activeCurrencyTotals.forEach { (curr, sum) ->
+                                Text(
+                                    text = curr.format(sum),
+                                    fontSize = if (activeCurrencyTotals.size > 1) 18.sp else 22.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = BentoColors.WishlistRuby
+                                )
+                            }
+                        }
                     }
 
                     Column(
@@ -124,12 +157,16 @@ fun WishlistScreen(
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
-                        Text(
-                            text = "¥${totalSavedBudget.toLong()}",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = BentoColors.GroceryMint
-                        )
+                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            savedCurrencyTotals.forEach { (curr, sum) ->
+                                Text(
+                                    text = curr.format(sum),
+                                    fontSize = if (savedCurrencyTotals.size > 1) 16.sp else 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = BentoColors.GroceryMint
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -164,7 +201,7 @@ fun WishlistScreen(
                 }
             }
 
-            // Wishlist Items
+            // Wishlist Items with Swipe-to-Delete and Tap-to-Edit
             if (displayedItems.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -173,9 +210,10 @@ fun WishlistScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = if (lang == AppLanguage.CHINESE) "心如止水，钱包保住啦 🧸" else "Peaceful mind, wallet saved 🧸",
+                        text = if (lang == AppLanguage.CHINESE) "暂无剁手记录 ✨\n心如止水，钱包保住啦 🧸" else "No items ✨\nPeaceful mind, wallet saved 🧸",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
             } else {
@@ -184,18 +222,58 @@ fun WishlistScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(displayedItems, key = { it.id }) { item ->
-                        WishlistCardRow(
-                            item = item,
-                            lang = lang,
-                            onBuy = { dataStore.toggleWishlistPurchased(item.id) },
-                            onPass = { dataStore.abandonWishlistItem(item.id) },
-                            onRestore = { dataStore.restoreWishlistItem(item.id) },
-                            onDelete = { dataStore.deleteWishlistItem(item.id) }
-                        )
+                        SwipeToDeleteContainer(
+                            onDelete = { wishlistToDelete = item },
+                            deleteLabel = if (lang == AppLanguage.CHINESE) "删除" else "Delete"
+                        ) {
+                            WishlistCardRow(
+                                item = item,
+                                lang = lang,
+                                onEdit = { editingWishlist = item },
+                                onBuy = { dataStore.toggleWishlistPurchased(item.id) },
+                                onPass = { dataStore.abandonWishlistItem(item.id) },
+                                onRestore = { dataStore.restoreWishlistItem(item.id) },
+                                onDelete = { wishlistToDelete = item }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    // Delete Confirmation Dialog
+    wishlistToDelete?.let { item ->
+        AlertDialog(
+            onDismissRequest = { wishlistToDelete = null },
+            title = {
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "确认删除此项？" else "Delete Item?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "确定要删除「${item.title}」吗？" else "Are you sure you want to delete \"${item.title}\"?"
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        dataStore.deleteWishlistItem(item.id)
+                        wishlistToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(if (lang == AppLanguage.CHINESE) "删除" else "Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { wishlistToDelete = null }) {
+                    Text(if (lang == AppLanguage.CHINESE) "取消" else "Cancel")
+                }
+            }
+        )
     }
 
     if (isShowingAddDialog) {
@@ -205,12 +283,29 @@ fun WishlistScreen(
             onSave = { dataStore.addWishlistItem(it) }
         )
     }
+
+    editingWishlist?.let { item ->
+        EditWishlistDialog(
+            lang = lang,
+            item = item,
+            onDismiss = { editingWishlist = null },
+            onSave = { updated ->
+                dataStore.updateWishlistItem(updated)
+                editingWishlist = null
+            },
+            onDelete = {
+                dataStore.deleteWishlistItem(item.id)
+                editingWishlist = null
+            }
+        )
+    }
 }
 
 @Composable
 fun WishlistCardRow(
     item: WishlistItem,
     lang: AppLanguage,
+    onEdit: () -> Unit,
     onBuy: () -> Unit,
     onPass: () -> Unit,
     onRestore: () -> Unit,
@@ -221,7 +316,9 @@ fun WishlistCardRow(
     Card(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onEdit() }
     ) {
         Column(
             modifier = Modifier
@@ -241,12 +338,24 @@ fun WishlistCardRow(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                if (item.targetPrice > 0) {
-                    Text(
-                        text = currency.format(item.targetPrice),
-                        fontWeight = FontWeight.Black,
-                        fontSize = 16.sp,
-                        color = BentoColors.WishlistRuby
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (item.targetPrice != 0.0) {
+                        Text(
+                            text = currency.format(item.targetPrice),
+                            fontWeight = FontWeight.Black,
+                            fontSize = 16.sp,
+                            color = BentoColors.WishlistRuby
+                        )
+                    }
+
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
@@ -267,7 +376,7 @@ fun WishlistCardRow(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (item.coolOffDaysTotal >= 9999) "∞" else if (lang == AppLanguage.CHINESE) "冷静还剩 ${item.daysRemaining} 天" else "${item.daysRemaining} days left",
+                        text = if (item.coolOffDaysTotal >= 9999) "冷静 ∞" else if (lang == AppLanguage.CHINESE) "冷静还剩 ${item.daysRemaining} 天" else "${item.daysRemaining} days left",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = BentoColors.WishlistRuby
@@ -370,7 +479,7 @@ fun WishlistCardRow(
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -411,7 +520,7 @@ fun AddWishlistDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = if (lang == AppLanguage.CHINESE) "新建心愿与冷静期" else "New Wishlist Item",
+                    text = if (lang == AppLanguage.CHINESE) "新建剁手" else "New Wishlist Item",
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp
                 )
@@ -419,7 +528,7 @@ fun AddWishlistDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text(if (lang == AppLanguage.CHINESE) "心愿好物名称" else "Item Name") },
+                    label = { Text(if (lang == AppLanguage.CHINESE) "剁手物品名称" else "Item Name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -450,17 +559,42 @@ fun AddWishlistDialog(
                     }
                 }
 
-                OutlinedTextField(
-                    value = priceStr,
-                    onValueChange = { priceStr = it },
-                    label = { Text(if (lang == AppLanguage.CHINESE) "预算金额 (如 2999)" else "Budget Price") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            priceStr = if (priceStr.startsWith("-")) priceStr.drop(1) else if (priceStr.isNotEmpty()) "-$priceStr" else "-"
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (priceStr.startsWith("-")) BentoColors.WishlistRuby else BentoColors.WishlistRuby.copy(alpha = 0.15f)
+                        ),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                        modifier = Modifier.height(56.dp)
+                    ) {
+                        Text(
+                            text = "±",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = if (priceStr.startsWith("-")) Color.White else BentoColors.WishlistRuby
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = priceStr,
+                        onValueChange = { priceStr = it },
+                        label = { Text(if (lang == AppLanguage.CHINESE) "预算金额 (支持负数如 -200)" else "Budget (e.g. -200)") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
                 // Cool-off Days
                 Text(
-                    text = if (lang == AppLanguage.CHINESE) "冷静期" else "Cool-off Period",
+                    text = if (lang == AppLanguage.CHINESE) "剁手冷静" else "Cool-off Period",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -493,7 +627,7 @@ fun AddWishlistDialog(
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text(if (lang == AppLanguage.CHINESE) "种草理由 / 备注" else "Reason / Notes") },
+                    label = { Text(if (lang == AppLanguage.CHINESE) "购买理由 / 备注 (选填)" else "Reason / Notes (Optional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -526,6 +660,196 @@ fun AddWishlistDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = BentoColors.WishlistRuby)
                     ) {
                         Text(if (lang == AppLanguage.CHINESE) "保存" else "Save")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EditWishlistDialog(
+    lang: AppLanguage,
+    item: WishlistItem,
+    onDismiss: () -> Unit,
+    onSave: (WishlistItem) -> Unit,
+    onDelete: () -> Unit
+) {
+    var title by remember { mutableStateOf(item.title) }
+    var priceStr by remember { mutableStateOf(if (item.targetPrice != 0.0) item.targetPrice.toLong().toString() else "") }
+    var selectedCurrency by remember { mutableStateOf(WishlistCurrency.fromSymbol(item.currency)) }
+    var coolOffDays by remember { mutableStateOf(item.coolOffDaysTotal) }
+    var notes by remember { mutableStateOf(item.notes) }
+
+    val coolOffOptions = listOf(
+        7 to (if (lang == AppLanguage.CHINESE) "7天" else "7 Days"),
+        14 to (if (lang == AppLanguage.CHINESE) "14天" else "14 Days"),
+        30 to (if (lang == AppLanguage.CHINESE) "30天" else "30 Days"),
+        9999 to "∞"
+    )
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "修改剁手" else "Edit Wishlist Item",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                )
+
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text(if (lang == AppLanguage.CHINESE) "剁手物品名称" else "Item Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Currency & Price
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    WishlistCurrency.entries.forEach { curr ->
+                        val isSelected = selectedCurrency == curr
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSelected) BentoColors.WishlistRuby else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                .clickable { selectedCurrency = curr }
+                                .padding(vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${curr.symbol} ${curr.getName(lang)}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            priceStr = if (priceStr.startsWith("-")) priceStr.drop(1) else if (priceStr.isNotEmpty()) "-$priceStr" else "-"
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (priceStr.startsWith("-")) BentoColors.WishlistRuby else BentoColors.WishlistRuby.copy(alpha = 0.15f)
+                        ),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                        modifier = Modifier.height(56.dp)
+                    ) {
+                        Text(
+                            text = "±",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = if (priceStr.startsWith("-")) Color.White else BentoColors.WishlistRuby
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = priceStr,
+                        onValueChange = { priceStr = it },
+                        label = { Text(if (lang == AppLanguage.CHINESE) "预算金额 (支持负数如 -200)" else "Budget (e.g. -200)") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                // Cool-off Days
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "剁手冷静" else "Cool-off Period",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    coolOffOptions.forEach { (days, label) ->
+                        val isSelected = coolOffDays == days
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) BentoColors.WishlistRuby else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                                .clickable { coolOffDays = days }
+                                .padding(vertical = 6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text(if (lang == AppLanguage.CHINESE) "购买理由 / 备注" else "Reason / Notes") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = onDelete,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text(if (lang == AppLanguage.CHINESE) "删除此记录" else "Delete")
+                    }
+
+                    Row {
+                        TextButton(onClick = onDismiss) {
+                            Text(if (lang == AppLanguage.CHINESE) "取消" else "Cancel")
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = {
+                                if (title.isNotBlank()) {
+                                    onSave(
+                                        item.copy(
+                                            title = title.trim(),
+                                            targetPrice = priceStr.toDoubleOrNull() ?: 0.0,
+                                            currency = selectedCurrency.symbol,
+                                            coolOffDaysTotal = coolOffDays,
+                                            notes = notes.trim()
+                                        )
+                                    )
+                                }
+                            },
+                            enabled = title.isNotBlank(),
+                            colors = ButtonDefaults.buttonColors(containerColor = BentoColors.WishlistRuby)
+                        ) {
+                            Text(if (lang == AppLanguage.CHINESE) "保存" else "Save")
+                        }
                     }
                 }
             }

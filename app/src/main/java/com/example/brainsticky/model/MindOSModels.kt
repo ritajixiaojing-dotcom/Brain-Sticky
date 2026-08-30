@@ -53,6 +53,7 @@ data class StickyNoteItem(
     val content: String,
     val moodEmoji: String = "✨",
     val colorHex: String = "#FFF7D1",
+    val textColorHex: String = "#1E293B",
     val isPinned: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 )
@@ -113,9 +114,9 @@ enum class WishlistCurrency(val symbol: String, val nameZh: String, val nameEn: 
 
     fun format(price: Double): String {
         return if (this == JPY) {
-            "${price.toLong()} 円"
+            if (price < 0) "-${kotlin.math.abs(price.toLong())} 円" else "${price.toLong()} 円"
         } else {
-            "$symbol${price.toLong()}"
+            if (price < 0) "-$symbol${kotlin.math.abs(price.toLong())}" else "$symbol${price.toLong()}"
         }
     }
 
@@ -168,9 +169,30 @@ data class CustomEntryItem(
     val detail: String = "",
     val isCompleted: Boolean = false,
     val streakDays: Int = 0,
+    val count: Int = 0,
     val lastCompletedDate: String = "",
-    val historyDates: List<String> = emptyList()
-)
+    val historyDates: List<String> = emptyList(),
+    val lastCheckedInTimestamp: Long = 0L
+) {
+    fun nextCheckInCountdown(lang: AppLanguage): String {
+        if (lastCheckedInTimestamp <= 0L) {
+            return if (lang == AppLanguage.CHINESE) "24小时后可再次打卡" else "Next check-in in 24h"
+        }
+        val elapsed = System.currentTimeMillis() - lastCheckedInTimestamp
+        val total24h = 24L * 3600L * 1000L
+        if (elapsed >= total24h) {
+            return if (lang == AppLanguage.CHINESE) "已满24小时，可+1打卡 ✨" else "24h reached, ready for +1 ✨"
+        }
+        val remaining = total24h - elapsed
+        val hours = (remaining / (1000 * 3600)).toInt()
+        val minutes = ((remaining % (1000 * 3600)) / (1000 * 60)).toInt()
+        return if (lang == AppLanguage.CHINESE) {
+            if (hours > 0) "24小时倒数：${hours}小时${minutes}分后可再次打卡" else "24小时倒数：${kotlin.math.max(1, minutes)}分钟后可再次打卡"
+        } else {
+            if (hours > 0) "Next +1 available in ${hours}h ${minutes}m" else "Next +1 available in ${kotlin.math.max(1, minutes)}m"
+        }
+    }
+}
 
 @Serializable
 data class CustomModule(
