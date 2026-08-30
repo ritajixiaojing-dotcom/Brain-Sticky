@@ -109,19 +109,7 @@ public struct CustomModuleDetailView: View {
         .navigationTitle(displayedModuleTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if !module.entries.isEmpty {
-                ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        Button(role: .destructive, action: { isShowingClearAllItemsAlert = true }) {
-                            Label(langManager.currentLanguage == .chinese ? "清空所有打卡项目" : "Clear All Habits", systemImage: "trash")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(BentoColors.omniElectric)
-                    }
-                }
-            }
+            trailingToolbarItems
         }
         .alert(
             langManager.currentLanguage == .chinese ? "今日已打卡" : "Already Checked In Today",
@@ -183,6 +171,26 @@ public struct CustomModuleDetailView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
+    }
+    
+    @ToolbarContentBuilder
+    private var trailingToolbarItems: some ToolbarContent {
+        if !module.entries.isEmpty {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button(role: .destructive) {
+                        isShowingClearAllItemsAlert = true
+                    } label: {
+                        let labelText: String = (langManager.currentLanguage == .chinese) ? "清空所有打卡项目" : "Clear All Habits"
+                        Label(labelText, systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(BentoColors.omniElectric)
+                }
+            }
+        }
     }
     
     @ViewBuilder
