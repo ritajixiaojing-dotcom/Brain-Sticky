@@ -15,9 +15,11 @@ public struct OmniCaptureView: View {
     @State private var contentText: String = ""
     @State private var selectedMood: String = "✨"
     @State private var selectedColorHex: String = "#FFF7D1" // 默认柔黄便签
+    @State private var selectedTextColorHex: String = "#1E293B" // 默认经典墨黑
     @FocusState private var isFocused: Bool
     
     let moods = ["✨", "💡", "🌈", "☕️", "💭", "🎯", "🌿", "🌸"]
+    let textColorHexes = ["#1E293B", "#78350F", "#BE123C", "#065F46", "#1E40AF", "#6B21A8"]
     
     public init() {}
     
@@ -45,26 +47,18 @@ public struct OmniCaptureView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
                     
-                    // MARK: - 原生 TextEditor 文本卡片 (全面优化中文输入法与换行兼容，秒速聚焦)
+                    // MARK: - 文本卡片 (支持回车换行多行自由编辑，秒速聚焦)
                     VStack(alignment: .leading, spacing: 14) {
-                        ZStack(alignment: .topLeading) {
-                            if contentText.isEmpty {
-                                Text(langManager.currentLanguage == .chinese ? "写下此刻的想法与日常碎碎念..." : "Write down thoughts & moments...")
-                                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                                    .foregroundColor(Color.black.opacity(0.35))
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 14)
-                                    .allowsHitTesting(false)
-                            }
-                            
-                            TextEditor(text: $contentText)
-                                .focused($isFocused)
-                                .scrollContentBackground(.hidden)
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundColor(Color.black.opacity(0.85))
-                                .padding(10)
-                                .frame(minHeight: 140)
-                        }
+                        TextField(
+                            langManager.currentLanguage == .chinese ? "写下此刻的想法与日常碎碎念..." : "Write down thoughts & moments...",
+                            text: $contentText,
+                            axis: .vertical
+                        )
+                        .focused($isFocused)
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundColor(BentoColors.colorForHex(selectedTextColorHex))
+                        .padding(14)
+                        .frame(minHeight: 130, alignment: .topLeading)
                         .background(BentoColors.colorForHex(selectedColorHex))
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .onTapGesture {
@@ -72,20 +66,49 @@ public struct OmniCaptureView: View {
                         }
                         
                         // 柔和底色点选
-                        HStack(spacing: 12) {
-                            ForEach(BentoColors.allStickyHexes, id: \.self) { hex in
-                                Circle()
-                                    .fill(BentoColors.colorForHex(hex))
-                                    .frame(width: 28, height: 28)
-                                    .overlay(
-                                        Circle().stroke(selectedColorHex == hex ? Color.primary.opacity(0.8) : Color.black.opacity(0.06), lineWidth: selectedColorHex == hex ? 2 : 1)
-                                    )
-                                    .onTapGesture {
-                                        selectedColorHex = hex
-                                        HapticManager.shared.selection()
-                                    }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(langManager.currentLanguage == .chinese ? "便签底色" : "Background")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundColor(.secondary)
+                            
+                            HStack(spacing: 12) {
+                                ForEach(BentoColors.allStickyHexes, id: \.self) { hex in
+                                    Circle()
+                                        .fill(BentoColors.colorForHex(hex))
+                                        .frame(width: 26, height: 26)
+                                        .overlay(
+                                            Circle().stroke(selectedColorHex == hex ? Color.primary.opacity(0.8) : Color.black.opacity(0.06), lineWidth: selectedColorHex == hex ? 2 : 1)
+                                        )
+                                        .onTapGesture {
+                                            selectedColorHex = hex
+                                            HapticManager.shared.selection()
+                                        }
+                                }
+                                Spacer()
                             }
-                            Spacer()
+                        }
+                        
+                        // 字体颜色点选
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(langManager.currentLanguage == .chinese ? "字体颜色" : "Font Color")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundColor(.secondary)
+                            
+                            HStack(spacing: 12) {
+                                ForEach(textColorHexes, id: \.self) { hex in
+                                    Circle()
+                                        .fill(BentoColors.colorForHex(hex))
+                                        .frame(width: 26, height: 26)
+                                        .overlay(
+                                            Circle().stroke(selectedTextColorHex == hex ? Color.black : Color.black.opacity(0.1), lineWidth: selectedTextColorHex == hex ? 2.5 : 1)
+                                        )
+                                        .onTapGesture {
+                                            selectedTextColorHex = hex
+                                            HapticManager.shared.selection()
+                                        }
+                                }
+                                Spacer()
+                            }
                         }
                     }
                     .padding(16)
@@ -126,29 +149,10 @@ public struct OmniCaptureView: View {
                         }
                     }
                     .padding(.top, 4)
-                    
-                    // MARK: - 保存按键
-                    Button(action: commitDrop) {
-                        Text(langManager.localized(.save))
-                            .font(.system(size: 16, weight: .heavy, design: .rounded))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 13)
-                            .background(
-                                isSubmitDisabled ? Color.gray.opacity(0.25) : BentoColors.noteAmber
-                            )
-                            .foregroundColor(.white)
-                            .clipShape(Capsule())
-                            .shadow(color: isSubmitDisabled ? .clear : BentoColors.noteAmber.opacity(0.35), radius: 8, y: 4)
-                    }
-                    .disabled(isSubmitDisabled)
-                    .bouncyTap()
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 24)
                 }
             }
             .scrollDismissesKeyboard(.interactively)
-            .dismissKeyboardOnTap()
             .background(BentoColors.bgPrimary.ignoresSafeArea())
             .navigationTitle(langManager.localized(.dropsTitle))
             .navigationBarTitleDisplayMode(.inline)
@@ -157,14 +161,19 @@ public struct OmniCaptureView: View {
                     Button(langManager.localized(.cancel)) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                 }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(langManager.localized(.done)) {
-                        isFocused = false
-                        UIApplication.shared.endEditing()
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(action: commitDrop) {
+                        Text(langManager.localized(.save))
+                            .font(.system(size: 14, weight: .heavy, design: .rounded))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 6)
+                            .background(
+                                isSubmitDisabled ? Color.gray.opacity(0.3) : BentoColors.noteAmber
+                            )
+                            .foregroundColor(.white)
+                            .clipShape(Capsule())
                     }
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(BentoColors.noteAmber)
+                    .disabled(isSubmitDisabled)
                 }
             }
             .onAppear {
@@ -182,7 +191,8 @@ public struct OmniCaptureView: View {
         let note = StickyNoteItem(
             content: text,
             moodEmoji: selectedMood,
-            colorHex: selectedColorHex
+            colorHex: selectedColorHex,
+            textColorHex: selectedTextColorHex
         )
         store.addStickyNote(note)
         

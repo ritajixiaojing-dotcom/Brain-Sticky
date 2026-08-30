@@ -92,10 +92,7 @@ public extension UIApplication {
 public struct DismissKeyboardOnTap: ViewModifier {
     public func body(content: Content) -> some View {
         content
-            .contentShape(Rectangle())
-            .onTapGesture {
-                UIApplication.shared.endEditing()
-            }
+            .scrollDismissesKeyboard(.interactively)
     }
 }
 
@@ -104,19 +101,29 @@ public final class HapticManager {
     public static let shared = HapticManager()
     private init() {}
     
+    private var isEnabled: Bool {
+        if UserDefaults.standard.object(forKey: "enableHaptics") == nil {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: "enableHaptics")
+    }
+    
     public func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .medium) {
+        guard isEnabled else { return }
         let generator = UIImpactFeedbackGenerator(style: style)
         generator.prepare()
         generator.impactOccurred()
     }
     
     public func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        guard isEnabled else { return }
         let generator = UINotificationFeedbackGenerator()
         generator.prepare()
         generator.notificationOccurred(type)
     }
     
     public func selection() {
+        guard isEnabled else { return }
         let generator = UISelectionFeedbackGenerator()
         generator.prepare()
         generator.selectionChanged()
@@ -205,7 +212,7 @@ public struct BentoCardView<Content: View>: View {
                 CuteHollowTitleView(
                     text: title,
                     fontSize: 17,
-                    strokeColor: Color(red: 155/255, green: 150/255, blue: 165/255),
+                    strokeColor: Color(red: 120/255, green: 112/255, blue: 135/255),
                     strokeWidth: 1.2,
                     fillColor: Color.white
                 )
@@ -257,7 +264,7 @@ public struct CuteHollowTitleView: View {
     public init(
         text: String,
         fontSize: CGFloat = 22,
-        strokeColor: Color = Color(red: 155/255, green: 150/255, blue: 165/255), // 柔和高级浅烟灰
+        strokeColor: Color = Color(red: 120/255, green: 112/255, blue: 135/255), // 柔和高级灰
         strokeWidth: CGFloat = 1.3,
         fillColor: Color = Color.white
     ) {

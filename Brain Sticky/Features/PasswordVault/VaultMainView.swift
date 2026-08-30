@@ -15,9 +15,38 @@ public struct VaultMainView: View {
     @State private var editingItem: VaultItem? = nil
     @State private var largeDisplayItem: VaultItem? = nil
     @State private var toastMessage: String? = nil
+    @State private var itemToDelete: VaultItem? = nil
     
     public var body: some View {
         VStack(spacing: 0) {
+            // MARK: - 居中显眼快速新建密码按钮
+            Button(action: {
+                isShowingAddSheet = true
+                HapticManager.shared.impact(.medium)
+            }) {
+                HStack(spacing: 10) {
+                    Text("🔐")
+                        .font(.system(size: 16))
+                    Text(langManager.currentLanguage == .chinese ? "✨ 新建钥匙与密码账号..." : "✨ Add new secret or password...")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(.primary.opacity(0.85))
+                    Spacer()
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(BentoColors.vaultViolet)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(Color.white)
+                .contentShape(Rectangle())
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: BentoColors.vaultViolet.opacity(0.14), radius: 8, x: 0, y: 3)
+            }
+            .buttonStyle(BouncyButtonStyle())
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 6)
+            
             List {
                 if store.vaultItems.isEmpty {
                     VStack(spacing: 8) {
@@ -30,6 +59,7 @@ public struct VaultMainView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 } else {
                     ForEach(store.vaultItems) { item in
                         VaultItemCardRow(
@@ -47,7 +77,15 @@ public struct VaultMainView: View {
                             }
                         )
                         .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                itemToDelete = item
+                            } label: {
+                                Label(langManager.currentLanguage == .chinese ? "删除" : "Delete", systemImage: "trash")
+                            }
+                        }
                         .swipeActions(edge: .leading) {
                             Button {
                                 editingItem = item
@@ -56,10 +94,24 @@ public struct VaultMainView: View {
                             }
                             .tint(BentoColors.vaultViolet)
                         }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                store.deleteVaultItem(id: item.id)
-                            } label: {
+                        .contextMenu {
+                            Button(action: {
+                                UIPasteboard.general.string = item.secretValue
+                                showToast(langManager.currentLanguage == .chinese ? "已复制" : "Copied")
+                                HapticManager.shared.notification(.success)
+                            }) {
+                                Label(langManager.currentLanguage == .chinese ? "复制密码" : "Copy Password", systemImage: "doc.on.doc")
+                            }
+                            
+                            Button(action: {
+                                editingItem = item
+                            }) {
+                                Label(langManager.currentLanguage == .chinese ? "修改" : "Edit", systemImage: "pencil")
+                            }
+                            
+                            Button(role: .destructive, action: {
+                                itemToDelete = item
+                            }) {
                                 Label(langManager.currentLanguage == .chinese ? "删除" : "Delete", systemImage: "trash")
                             }
                         }
@@ -67,6 +119,7 @@ public struct VaultMainView: View {
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .dismissKeyboardOnTap()
         }
@@ -81,6 +134,26 @@ public struct VaultMainView: View {
                         .font(.system(size: 15, weight: .bold))
                 }
             }
+        }
+        .alert(
+            langManager.currentLanguage == .chinese ? "确认删除此密码记录？" : "Delete Password?",
+            isPresented: Binding(
+                get: { itemToDelete != nil },
+                set: { if !$0 { itemToDelete = nil } }
+            ),
+            presenting: itemToDelete
+        ) { item in
+            Button(langManager.currentLanguage == .chinese ? "删除" : "Delete", role: .destructive) {
+                withAnimation(.spring()) {
+                    store.deleteVaultItem(id: item.id)
+                }
+                itemToDelete = nil
+            }
+            Button(langManager.localized(.cancel), role: .cancel) {
+                itemToDelete = nil
+            }
+        } message: { item in
+            Text(langManager.currentLanguage == .chinese ? "确定要删除「\(item.title)」的密码记录吗？此操作无法撤销。" : "Are you sure you want to delete \"\(item.title)\"?")
         }
         .overlay(
             VStack {
@@ -117,10 +190,11 @@ public struct VaultMainView: View {
     }
 }
 
-// MARK: - 极简密码卡片 (无杂乱标签，纯粹直白展示主题与明文密码)
+// MARK: - 极简密码卡片 (默认闭眼隐藏，支持睁眼/闭眼切换)
 struct VaultItemCardRow: View {
     @ObservedObject var store = DataStore.shared
     @State var item: VaultItem
+    @State private var isRevealed: Bool = false
     var onCopy: (String) -> Void
     var onEdit: () -> Void
     var onLargeDisplay: () -> Void
@@ -148,18 +222,34 @@ struct VaultItemCardRow: View {
                     .foregroundColor(.secondary)
             }
             
-            // 明文密码框
-            HStack {
-                Text(item.secretValue)
+            // 密码框 (默认隐藏，支持睁闭眼切换与放大展示)
+            HStack(spacing: 10) {
+                Text(isRevealed ? item.secretValue : "••••••••")
                     .font(.system(size: 16, weight: .bold, design: .monospaced))
-                    .foregroundColor(.primary)
+                    .foregroundColor(isRevealed ? .primary : .secondary)
                 
                 Spacer()
                 
+                // 睁眼/闭眼切换按键
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        isRevealed.toggle()
+                        HapticManager.shared.selection()
+                    }
+                }) {
+                    Image(systemName: isRevealed ? "eye.fill" : "eye.slash.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(isRevealed ? BentoColors.vaultViolet : .secondary)
+                        .padding(4)
+                }
+                .buttonStyle(.plain)
+                
+                // 复制按键
                 Button(action: { onCopy(item.secretValue) }) {
                     Image(systemName: "doc.on.doc.fill")
                         .font(.system(size: 13))
                         .foregroundColor(BentoColors.vaultViolet)
+                        .padding(4)
                 }
                 .buttonStyle(.plain)
             }
@@ -268,14 +358,6 @@ struct AddVaultSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(langManager.localized(.cancel)) { dismiss() }
                 }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(langManager.localized(.done)) {
-                        UIApplication.shared.endEditing()
-                    }
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(BentoColors.vaultViolet)
-                }
             }
         }
     }
@@ -324,14 +406,6 @@ struct EditVaultSheet: View {
                         dismiss()
                     }
                     .disabled(item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(langManager.localized(.done)) {
-                        UIApplication.shared.endEditing()
-                    }
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(BentoColors.vaultViolet)
                 }
             }
         }

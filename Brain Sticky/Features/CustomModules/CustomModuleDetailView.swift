@@ -54,6 +54,7 @@ public struct CustomModuleDetailView: View {
     @State private var isShowingCreateCustomHabitSheet = false
     @State private var isShowingResetAlert = false
     @State private var isShowingClearAllItemsAlert = false
+    @State private var entryToDelete: CustomEntryItem? = nil
     @State private var newEntryTitle = ""
     @State private var newEntryIcon = "🎯"
     @State private var newEntryDetail = ""
@@ -98,343 +99,9 @@ public struct CustomModuleDetailView: View {
             .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // MARK: - 顶部看板卡片 (Header Summary Card 显式呈现主题色)
-                VStack(spacing: 10) {
-                    HStack(spacing: 8) {
-                        Text(module.icon)
-                            .font(.system(size: 26))
-                        
-                        CuteHollowTitleView(
-                            text: displayedModuleTitle,
-                            fontSize: 22,
-                            strokeColor: Color(red: 145/255, green: 135/255, blue: 165/255),
-                            strokeWidth: 1.3,
-                            fillColor: Color.white
-                        )
-                        
-                        Spacer()
-                        
-                        Button(action: { isShowingEditModuleSheet = true }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "paintpalette.fill")
-                                    .font(.system(size: 11, weight: .bold))
-                                Text(langManager.currentLanguage == .chinese ? "卡片主题" : "Theme")
-                                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                            }
-                            .foregroundColor(BentoColors.omniElectric)
-                            .padding(.horizontal, 11)
-                            .padding(.vertical, 6)
-                            .background(Color.white.opacity(0.92))
-                            .clipShape(Capsule())
-                            .shadow(color: Color.black.opacity(0.04), radius: 3, x: 0, y: 1)
-                        }
-                        .bouncyTap()
-                    }
-                    
-                    // 状态与统计说明 + 一键清除打卡按钮
-                    let completedCount = module.entries.filter { $0.isCompleted }.count
-                    let total = module.entries.count
-                    
-                    HStack(spacing: 8) {
-                        if total > 0 {
-                            HStack(spacing: 6) {
-                                Text(langManager.currentLanguage == .chinese ? "今日打卡：" : "Today:")
-                                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                                    .foregroundColor(.secondary)
-                                Text(langManager.currentLanguage == .chinese ? "\(completedCount) / \(total) 已完成" : "\(completedCount) / \(total) Done")
-                                    .font(.system(size: 14, weight: .heavy, design: .rounded))
-                                    .foregroundColor(completedCount == total ? BentoColors.groceryMint : BentoColors.omniElectric)
-                            }
-                            
-                            Spacer()
-                            
-                            // 🌟 一键清除所有打卡项目按键
-                            if total > 0 {
-                                Button(action: {
-                                    isShowingResetAlert = true
-                                }) {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "trash")
-                                            .font(.system(size: 11, weight: .bold))
-                                        Text(langManager.currentLanguage == .chinese ? "清除今日打卡" : "Reset Today")
-                                            .font(.system(size: 11, weight: .heavy, design: .rounded))
-                                    }
-                                    .foregroundColor(BentoColors.urgentCoral)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
-                                    .background(BentoColors.urgentCoral.opacity(0.12))
-                                    .clipShape(Capsule())
-                                    .overlay(
-                                        Capsule().stroke(BentoColors.urgentCoral.opacity(0.35), lineWidth: 1)
-                                    )
-                                    .shadow(color: BentoColors.urgentCoral.opacity(0.1), radius: 3, y: 1)
-                                }
-                                .bouncyTap(scale: 0.92)
-                            }
-                        } else {
-                            Text(langManager.currentLanguage == .chinese ? "点击下方快捷标签或自定义按钮，将想打卡的项目放进列表 ✨" : "Tap tags below or add custom habits to start ✨")
-                                .font(.system(size: 12, weight: .medium, design: .rounded))
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
-                    }
-                    
-                    // 整体进度条（采用主题色渲染）
-                    if total > 0 {
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule()
-                                    .fill(Color.black.opacity(0.06))
-                                    .frame(height: 6)
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [themeColor, BentoColors.groceryMint],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(width: geo.size.width * CGFloat(Double(completedCount) / Double(total)), height: 6)
-                            }
-                        }
-                        .frame(height: 6)
-                        .padding(.top, 2)
-                    }
-                }
-                .padding(.horizontal, 18)
-                .padding(.vertical, 14)
-                .background(
-                    LinearGradient(
-                        colors: [
-                            themeColor.opacity(0.45),
-                            Color.white.opacity(0.94)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .stroke(themeColor.opacity(0.55), lineWidth: 1.5)
-                )
-                .shadow(color: themeColor.opacity(0.25), radius: 12, x: 0, y: 5)
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 6)
-                
-                // MARK: - 快捷习惯点选栏 (点击直接加入打卡单列清单！)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text(langManager.currentLanguage == .chinese ? "点击下方快捷标签，直接放入打卡列表：" : "Tap tags below to add to habit list:")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 18)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            // 🌟 1. 【➕ 自定义目标】按钮
-                            Button(action: {
-                                isShowingCreateCustomHabitSheet = true
-                                HapticManager.shared.selection()
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 13, weight: .bold))
-                                    Text(langManager.currentLanguage == .chinese ? "自定义目标" : "Custom")
-                                        .font(.system(size: 12, weight: .heavy, design: .rounded))
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 7)
-                                .background(BentoColors.omniElectric)
-                                .foregroundColor(.white)
-                                .clipShape(Capsule())
-                                .shadow(color: BentoColors.omniElectric.opacity(0.3), radius: 4, x: 0, y: 2)
-                            }
-                            .bouncyTap(scale: 0.95)
-                            
-                            // 🌟 2. 用户自定义保存的常用习惯（逐条动态呈现，一键加入列表！）
-                            ForEach(store.userCustomHabitPresets) { customPreset in
-                                let isAlreadyAdded = module.entries.contains(where: { $0.title == customPreset.name })
-                                Button(action: {
-                                    selectPresetHabit(icon: customPreset.icon, name: customPreset.name, detail: customPreset.defaultDetail)
-                                }) {
-                                    HStack(spacing: 4) {
-                                        Text(customPreset.icon)
-                                            .font(.system(size: 14))
-                                        Text(customPreset.name)
-                                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                                        Text("✨")
-                                            .font(.system(size: 9))
-                                        if isAlreadyAdded {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 9, weight: .heavy))
-                                                .foregroundColor(BentoColors.groceryMint)
-                                        }
-                                    }
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(isAlreadyAdded ? themeColor.opacity(0.35) : Color.white.opacity(0.92))
-                                    .foregroundColor(.primary)
-                                    .clipShape(Capsule())
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(isAlreadyAdded ? themeColor : Color.white.opacity(0.8), lineWidth: 1.2)
-                                    )
-                                    .shadow(color: Color.black.opacity(0.04), radius: 3, x: 0, y: 2)
-                                }
-                                .bouncyTap(scale: 0.95)
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        store.removeCustomHabitPreset(id: customPreset.id)
-                                    } label: {
-                                        Label(langManager.currentLanguage == .chinese ? "从常用栏移除" : "Remove from Presets", systemImage: "trash")
-                                    }
-                                }
-                            }
-                            
-                            // 🌟 3. 基础常用习惯预设（点击直接加入打卡列表！）
-                            ForEach(defaultBuiltinHabitPresets) { preset in
-                                let isAlreadyAdded = module.entries.contains(where: { $0.title == preset.name })
-                                Button(action: {
-                                    selectPresetHabit(icon: preset.icon, name: preset.name, detail: preset.defaultDetail)
-                                }) {
-                                    HStack(spacing: 4) {
-                                        Text(preset.icon)
-                                            .font(.system(size: 14))
-                                        Text(preset.label)
-                                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                                        if isAlreadyAdded {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 9, weight: .heavy))
-                                                .foregroundColor(BentoColors.groceryMint)
-                                        }
-                                    }
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(isAlreadyAdded ? BentoColors.omniElectric.opacity(0.18) : Color.white.opacity(0.9))
-                                    .foregroundColor(isAlreadyAdded ? BentoColors.omniElectric : .primary)
-                                    .clipShape(Capsule())
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(isAlreadyAdded ? BentoColors.omniElectric.opacity(0.5) : Color.white.opacity(0.8), lineWidth: 1)
-                                    )
-                                    .shadow(color: Color.black.opacity(0.04), radius: 3, x: 0, y: 2)
-                                }
-                                .bouncyTap(scale: 0.95)
-                            }
-                        }
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 2)
-                    }
-                }
-                .padding(.bottom, 4)
-                
-                // MARK: - 录入卡片栏 (Input Box)
-                HStack(spacing: 8) {
-                    // Icon 选择菜单
-                    Menu {
-                        // 🌟 1. 我的自定义习惯图标（用户自定义保存后实时展示在最前列）
-                        if !store.userCustomHabitPresets.isEmpty {
-                            Section(header: Text(langManager.currentLanguage == .chinese ? "我的自定义打卡 ✨" : "Custom Habits ✨")) {
-                                ForEach(store.userCustomHabitPresets) { customPreset in
-                                    Button("\(customPreset.icon) \(customPreset.name)") {
-                                        newEntryIcon = customPreset.icon
-                                        newEntryTitle = customPreset.name
-                                        newEntryDetail = customPreset.defaultDetail
-                                        HapticManager.shared.selection()
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // 🌟 2. 基础常用图标
-                        Section(header: Text(langManager.currentLanguage == .chinese ? "常用图标" : "Common Icons")) {
-                            ForEach(defaultBuiltinHabitPresets) { preset in
-                                Button("\(preset.icon) \(preset.label)") {
-                                    newEntryIcon = preset.icon
-                                    if newEntryTitle.isEmpty || defaultBuiltinHabitPresets.contains(where: { $0.name == newEntryTitle }) {
-                                        newEntryTitle = preset.name
-                                        newEntryDetail = preset.defaultDetail
-                                    }
-                                    HapticManager.shared.selection()
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 3) {
-                            Text(newEntryIcon)
-                                .font(.system(size: 18))
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 8, weight: .bold))
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 7)
-                        .background(themeColor.opacity(0.25))
-                        .clipShape(Capsule())
-                    }
-                    .bouncyTap(scale: 0.95)
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        TextField(
-                            langManager.currentLanguage == .chinese ? "输入任何习惯目标 (如 练琴、早睡)..." : "Enter habit (e.g. Piano, Early sleep)...",
-                            text: $newEntryTitle
-                        )
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .focused($isInputFocused)
-                        .submitLabel(.done)
-                        .onChange(of: newEntryTitle) { oldValue, newValue in
-                            if newEntryIcon == "🎯" {
-                                let suggested = CustomEntryItem.suggestIcon(for: newValue)
-                                if suggested != "🎯" {
-                                    newEntryIcon = suggested
-                                }
-                            }
-                        }
-                        .onSubmit(quickAddEntry)
-                        
-                        TextField(
-                            langManager.currentLanguage == .chinese ? "备注/目标 (如 每日15分钟, 睡前完成)..." : "Notes (e.g. 15 mins daily, before sleep)...",
-                            text: $newEntryDetail
-                        )
-                        .font(.system(size: 11, design: .rounded))
-                        .foregroundColor(.secondary)
-                    }
-                    
-                    HStack(spacing: 6) {
-                        // 加号
-                        Button(action: quickAddEntry) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.system(size: 30))
-                                .foregroundColor(newEntryTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? BentoColors.omniElectric.opacity(0.35) : BentoColors.omniElectric)
-                        }
-                        .bouncyTap()
-                        .disabled(newEntryTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        
-                        // 减号
-                        Button(action: quickMinusAction) {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.system(size: 30))
-                                .foregroundColor((newEntryTitle.isEmpty && module.entries.isEmpty) ? BentoColors.urgentCoral.opacity(0.3) : BentoColors.urgentCoral)
-                        }
-                        .bouncyTap(scale: 0.88)
-                        .disabled(newEntryTitle.isEmpty && module.entries.isEmpty)
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Color.white.opacity(0.95))
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(Color.white.opacity(0.85), lineWidth: 1.2)
-                )
-                .shadow(color: Color(red: 145/255, green: 135/255, blue: 165/255).opacity(0.1), radius: 8, x: 0, y: 3)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 4)
+                headerCard
+                presetsBar
+                inputBar
                 
                 // MARK: - 打卡条目主单列列表 (Neat Single-Column Habit List)
                 if module.entries.isEmpty {
@@ -456,14 +123,21 @@ public struct CustomModuleDetailView: View {
                 } else {
                     List {
                         ForEach(module.entries) { item in
-                            HabitItemRow(moduleId: module.id, item: item, themeColor: themeColor) {
-                                editingEntry = item
-                            }
+                            HabitItemRow(
+                                moduleId: module.id,
+                                item: item,
+                                themeColor: themeColor,
+                                onEdit: {
+                                    editingEntry = item
+                                },
+                                onDeleteRequest: {
+                                    entryToDelete = item
+                                }
+                            )
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                         }
-                        .onDelete(perform: deleteEntries)
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
@@ -491,6 +165,26 @@ public struct CustomModuleDetailView: View {
                     }
                 }
             }
+        }
+        .alert(
+            langManager.currentLanguage == .chinese ? "确认删除此打卡项？" : "Delete Habit Item?",
+            isPresented: Binding(
+                get: { entryToDelete != nil },
+                set: { if !$0 { entryToDelete = nil } }
+            ),
+            presenting: entryToDelete
+        ) { item in
+            Button(langManager.currentLanguage == .chinese ? "删除" : "Delete", role: .destructive) {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                    store.deleteEntryFromModule(moduleId: module.id, entryId: item.id)
+                }
+                entryToDelete = nil
+            }
+            Button(langManager.localized(.cancel), role: .cancel) {
+                entryToDelete = nil
+            }
+        } message: { item in
+            Text(langManager.currentLanguage == .chinese ? "确定要删除「\(item.icon) \(item.title)」吗？此操作无法撤销。" : "Are you sure you want to delete \"\(item.title)\"?")
         }
         .alert(
             langManager.currentLanguage == .chinese ? "确认清除今日打卡？" : "Reset today's habits?",
@@ -529,6 +223,337 @@ public struct CustomModuleDetailView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
+    }
+    
+    @ViewBuilder
+    private var headerCard: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Text(module.icon)
+                    .font(.system(size: 26))
+                
+                CuteHollowTitleView(
+                    text: displayedModuleTitle,
+                    fontSize: 22,
+                    strokeColor: Color(red: 120/255, green: 112/255, blue: 135/255),
+                    strokeWidth: 1.3,
+                    fillColor: Color.white
+                )
+                
+                Spacer()
+                
+                Button(action: { isShowingEditModuleSheet = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "paintpalette.fill")
+                            .font(.system(size: 11, weight: .bold))
+                        Text(langManager.currentLanguage == .chinese ? "卡片主题" : "Theme")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                    }
+                    .foregroundColor(BentoColors.omniElectric)
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.92))
+                    .clipShape(Capsule())
+                    .shadow(color: Color.black.opacity(0.04), radius: 3, x: 0, y: 1)
+                }
+                .bouncyTap()
+            }
+            
+            let completedCount = module.entries.filter { $0.isCompleted }.count
+            let total = module.entries.count
+            
+            HStack(spacing: 8) {
+                if total > 0 {
+                    HStack(spacing: 6) {
+                        Text(langManager.currentLanguage == .chinese ? "今日打卡：" : "Today:")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundColor(.secondary)
+                        Text(langManager.currentLanguage == .chinese ? "\(completedCount) / \(total) 已完成" : "\(completedCount) / \(total) Done")
+                            .font(.system(size: 14, weight: .heavy, design: .rounded))
+                            .foregroundColor(completedCount == total ? BentoColors.groceryMint : BentoColors.omniElectric)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        isShowingResetAlert = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11, weight: .bold))
+                            Text(langManager.currentLanguage == .chinese ? "清除今日打卡" : "Reset Today")
+                                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        }
+                        .foregroundColor(BentoColors.urgentCoral)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(BentoColors.urgentCoral.opacity(0.12))
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule().stroke(BentoColors.urgentCoral.opacity(0.35), lineWidth: 1)
+                        )
+                        .shadow(color: BentoColors.urgentCoral.opacity(0.1), radius: 3, y: 1)
+                    }
+                    .bouncyTap(scale: 0.92)
+                } else {
+                    Text(langManager.currentLanguage == .chinese ? "点击下方快捷标签或自定义按钮，将想打卡的项目放进列表 ✨" : "Tap tags below or add custom habits to start ✨")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+            }
+            
+            if total > 0 {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(height: 6)
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [themeColor, BentoColors.groceryMint],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geo.size.width * CGFloat(Double(completedCount) / Double(total)), height: 6)
+                    }
+                }
+                .frame(height: 6)
+                .padding(.top, 2)
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .background(
+            LinearGradient(
+                colors: [
+                    themeColor.opacity(0.45),
+                    Color.white.opacity(0.94)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(themeColor.opacity(0.55), lineWidth: 1.5)
+        )
+        .shadow(color: themeColor.opacity(0.25), radius: 12, x: 0, y: 5)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+    }
+    
+    @ViewBuilder
+    private var presetsBar: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(langManager.currentLanguage == .chinese ? "点击下方快捷标签，直接放入打卡列表：" : "Tap tags below to add to habit list:")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 18)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    Button(action: {
+                        isShowingCreateCustomHabitSheet = true
+                        HapticManager.shared.selection()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 13, weight: .bold))
+                            Text(langManager.currentLanguage == .chinese ? "自定义目标" : "Custom")
+                                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(BentoColors.omniElectric)
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                        .shadow(color: BentoColors.omniElectric.opacity(0.3), radius: 4, x: 0, y: 2)
+                    }
+                    .bouncyTap(scale: 0.95)
+                    
+                    ForEach(store.userCustomHabitPresets) { customPreset in
+                        let isAlreadyAdded = module.entries.contains(where: { $0.title == customPreset.name })
+                        Button(action: {
+                            selectPresetHabit(icon: customPreset.icon, name: customPreset.name, detail: customPreset.defaultDetail)
+                        }) {
+                            HStack(spacing: 4) {
+                                Text(customPreset.icon)
+                                    .font(.system(size: 14))
+                                Text(customPreset.name)
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                Text("✨")
+                                    .font(.system(size: 9))
+                                if isAlreadyAdded {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 9, weight: .heavy))
+                                        .foregroundColor(BentoColors.groceryMint)
+                                }
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(isAlreadyAdded ? themeColor.opacity(0.35) : Color.white.opacity(0.92))
+                            .foregroundColor(.primary)
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(isAlreadyAdded ? themeColor : Color.white.opacity(0.8), lineWidth: 1.2)
+                            )
+                            .shadow(color: Color.black.opacity(0.04), radius: 3, x: 0, y: 2)
+                        }
+                        .bouncyTap(scale: 0.95)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                store.removeCustomHabitPreset(id: customPreset.id)
+                            } label: {
+                                Label(langManager.currentLanguage == .chinese ? "从常用栏移除" : "Remove from Presets", systemImage: "trash")
+                            }
+                        }
+                    }
+                    
+                    ForEach(defaultBuiltinHabitPresets) { preset in
+                        let isAlreadyAdded = module.entries.contains(where: { $0.title == preset.name })
+                        Button(action: {
+                            selectPresetHabit(icon: preset.icon, name: preset.name, detail: preset.defaultDetail)
+                        }) {
+                            HStack(spacing: 4) {
+                                Text(preset.icon)
+                                    .font(.system(size: 14))
+                                Text(preset.label)
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                if isAlreadyAdded {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 9, weight: .heavy))
+                                        .foregroundColor(BentoColors.groceryMint)
+                                }
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(isAlreadyAdded ? themeColor.opacity(0.35) : Color.white.opacity(0.92))
+                            .foregroundColor(.primary)
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(isAlreadyAdded ? themeColor : Color.white.opacity(0.8), lineWidth: 1.2)
+                            )
+                            .shadow(color: Color.black.opacity(0.04), radius: 3, x: 0, y: 2)
+                        }
+                        .bouncyTap(scale: 0.95)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 4)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    @ViewBuilder
+    private var inputBar: some View {
+        HStack(spacing: 8) {
+            Menu {
+                if !store.userCustomHabitPresets.isEmpty {
+                    Section(header: Text(langManager.currentLanguage == .chinese ? "我的自定义打卡 ✨" : "Custom Habits ✨")) {
+                        ForEach(store.userCustomHabitPresets) { customPreset in
+                            Button("\(customPreset.icon) \(customPreset.name)") {
+                                newEntryIcon = customPreset.icon
+                                newEntryTitle = customPreset.name
+                                newEntryDetail = customPreset.defaultDetail
+                                HapticManager.shared.selection()
+                            }
+                        }
+                    }
+                }
+                
+                Section(header: Text(langManager.currentLanguage == .chinese ? "常用图标" : "Common Icons")) {
+                    ForEach(defaultBuiltinHabitPresets) { preset in
+                        Button("\(preset.icon) \(preset.label)") {
+                            newEntryIcon = preset.icon
+                            if newEntryTitle.isEmpty || defaultBuiltinHabitPresets.contains(where: { $0.name == newEntryTitle }) {
+                                newEntryTitle = preset.name
+                                newEntryDetail = preset.defaultDetail
+                            }
+                            HapticManager.shared.selection()
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 3) {
+                    Text(newEntryIcon)
+                        .font(.system(size: 18))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 7)
+                .background(themeColor.opacity(0.25))
+                .clipShape(Capsule())
+            }
+            .bouncyTap(scale: 0.95)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                TextField(
+                    langManager.currentLanguage == .chinese ? "输入任何习惯目标 (如 练琴、早睡)..." : "Enter habit (e.g. Piano, Early sleep)...",
+                    text: $newEntryTitle
+                )
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .focused($isInputFocused)
+                .submitLabel(.done)
+                .onChange(of: newEntryTitle) { oldValue, newValue in
+                    if newEntryIcon == "🎯" {
+                        let suggested = CustomEntryItem.suggestIcon(for: newValue)
+                        if suggested != "🎯" {
+                            newEntryIcon = suggested
+                        }
+                    }
+                }
+                .onSubmit(quickAddEntry)
+                
+                TextField(
+                    langManager.currentLanguage == .chinese ? "备注/目标 (如 每日15分钟, 睡前完成)..." : "Notes (e.g. 15 mins daily, before sleep)...",
+                    text: $newEntryDetail
+                )
+                .font(.system(size: 11, design: .rounded))
+                .foregroundColor(.secondary)
+            }
+            
+            HStack(spacing: 6) {
+                Button(action: quickAddEntry) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 30))
+                        .foregroundColor(newEntryTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? BentoColors.omniElectric.opacity(0.35) : BentoColors.omniElectric)
+                }
+                .bouncyTap()
+                .disabled(newEntryTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                
+                Button(action: quickMinusAction) {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 30))
+                        .foregroundColor((newEntryTitle.isEmpty && module.entries.isEmpty) ? BentoColors.urgentCoral.opacity(0.3) : BentoColors.urgentCoral)
+                }
+                .bouncyTap(scale: 0.88)
+                .disabled(newEntryTitle.isEmpty && module.entries.isEmpty)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.95))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.white.opacity(0.85), lineWidth: 1.2)
+        )
+        .shadow(color: Color(red: 145/255, green: 135/255, blue: 165/255).opacity(0.1), radius: 8, x: 0, y: 3)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
     }
     
     // 快捷从预设栏点选加入单列打卡列表
@@ -581,13 +606,6 @@ public struct CustomModuleDetailView: View {
                 store.deleteEntryFromModule(moduleId: module.id, entryId: last.id)
             }
             HapticManager.shared.notification(.warning)
-        }
-    }
-    
-    private func deleteEntries(at offsets: IndexSet) {
-        for index in offsets {
-            let item = module.entries[index]
-            store.deleteEntryFromModule(moduleId: module.id, entryId: item.id)
         }
     }
 }
@@ -712,6 +730,7 @@ struct HabitItemRow: View {
     let item: CustomEntryItem
     let themeColor: Color
     var onEdit: () -> Void
+    var onDeleteRequest: () -> Void
     @ObservedObject var store = DataStore.shared
     @ObservedObject var langManager = AppLanguageManager.shared
     
@@ -737,43 +756,86 @@ struct HabitItemRow: View {
                         .font(.system(size: 12, design: .rounded))
                         .foregroundColor(.secondary)
                 }
+                
+                if item.count >= 2 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "clock.badge.checkmark")
+                            .font(.system(size: 9.5, weight: .bold))
+                        Text(item.nextCheckInCountdown(isChinese: langManager.currentLanguage == .chinese))
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                    }
+                    .foregroundColor(BentoColors.groceryMint)
+                    .padding(.top, 1)
+                }
             }
             .onTapGesture { onEdit() }
             
             Spacer()
             
-            // 右侧：打卡状态与文字说明
+            // 右侧：打卡状态与累计计数
             Button(action: {
                 withAnimation(.spring(response: 0.32, dampingFraction: 0.65)) {
-                    store.toggleEntryInModule(moduleId: moduleId, entryId: item.id)
+                    store.incrementEntryCountInModule(moduleId: moduleId, entryId: item.id)
                 }
             }) {
-                if item.isCompleted {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 14, weight: .bold))
-                        Text(langManager.currentLanguage == .chinese ? "今日已完成" : "Done")
+                if item.count >= 2 {
+                    HStack(spacing: 5) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(BentoColors.groceryMint)
+                        Text(langManager.currentLanguage == .chinese ? "今日已打卡" : "Done Today")
                             .font(.system(size: 12, weight: .heavy, design: .rounded))
+                            .foregroundColor(BentoColors.groceryMint)
+                        Text("\(item.count)次")
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(BentoColors.groceryMint)
+                            .clipShape(Capsule())
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 7)
                     .background(BentoColors.groceryMint.opacity(0.15))
-                    .foregroundColor(BentoColors.groceryMint)
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule().stroke(BentoColors.groceryMint.opacity(0.35), lineWidth: 1.2)
+                    )
+                } else if item.count == 1 {
+                    HStack(spacing: 5) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(BentoColors.groceryMint)
+                        Text(langManager.currentLanguage == .chinese ? "今日 1 次" : "1 today")
+                            .font(.system(size: 12, weight: .heavy, design: .rounded))
+                            .foregroundColor(BentoColors.groceryMint)
+                        Text("+1")
+                            .font(.system(size: 10, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(BentoColors.groceryMint)
+                            .clipShape(Capsule())
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(BentoColors.groceryMint.opacity(0.15))
                     .clipShape(Capsule())
                     .overlay(
                         Capsule().stroke(BentoColors.groceryMint.opacity(0.3), lineWidth: 1)
                     )
                 } else {
                     HStack(spacing: 4) {
-                        Image(systemName: "circle")
+                        Image(systemName: "plus.circle.fill")
                             .font(.system(size: 14, weight: .bold))
-                        Text(langManager.currentLanguage == .chinese ? "点击打卡" : "Check-in")
+                            .foregroundColor(themeColor)
+                        Text(langManager.currentLanguage == .chinese ? "打卡 +1" : "Check-in +1")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 7)
                     .background(themeColor.opacity(0.28))
-                    .foregroundColor(.primary)
                     .clipShape(Capsule())
                     .overlay(
                         Capsule().stroke(themeColor.opacity(0.55), lineWidth: 1)
@@ -792,11 +854,9 @@ struct HabitItemRow: View {
                 .stroke(item.isCompleted ? Color.white.opacity(0.85) : themeColor.opacity(0.3), lineWidth: 1.0)
         )
         .shadow(color: Color(red: 145/255, green: 135/255, blue: 165/255).opacity(0.08), radius: 6, x: 0, y: 2)
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
-                withAnimation {
-                    store.deleteEntryFromModule(moduleId: moduleId, entryId: item.id)
-                }
+                onDeleteRequest()
             } label: {
                 Label(langManager.currentLanguage == .chinese ? "删除" : "Delete", systemImage: "trash")
             }
@@ -1088,7 +1148,7 @@ public struct BentoCustomCardView: View {
                 CuteHollowTitleView(
                     text: displayedTitle,
                     fontSize: 17,
-                    strokeColor: Color(red: 155/255, green: 150/255, blue: 165/255),
+                    strokeColor: Color(red: 120/255, green: 112/255, blue: 135/255),
                     strokeWidth: 1.2,
                     fillColor: Color.white
                 )

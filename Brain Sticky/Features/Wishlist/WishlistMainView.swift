@@ -12,6 +12,7 @@ public struct WishlistMainView: View {
     @ObservedObject var langManager = AppLanguageManager.shared
     @State private var isShowingAddSheet: Bool = false
     @State private var editingItem: WishlistItem? = nil
+    @State private var itemToDelete: WishlistItem? = nil
     @State private var viewTab: WishlistTab = .cooling
     @State private var isTotalZoomed: Bool = false
     @State private var isCountZoomed: Bool = false
@@ -65,7 +66,7 @@ public struct WishlistMainView: View {
         }
         
         let nonZero = WishlistCurrency.allCases.compactMap { curr -> CurrencySummary? in
-            if let sum = map[curr], sum > 0 {
+            if let sum = map[curr], sum != 0 {
                 return CurrencySummary(currency: curr, total: sum)
             }
             return nil
@@ -278,20 +279,16 @@ public struct WishlistMainView: View {
                         .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if item.isAbandoned {
                                 Button(role: .destructive) {
-                                    withAnimation(.spring()) {
-                                        store.deleteWishlistItem(id: item.id)
-                                    }
+                                    itemToDelete = item
                                 } label: {
                                     Label(langManager.currentLanguage == .chinese ? "彻底删除" : "Delete", systemImage: "trash.slash.fill")
                                 }
                             } else {
                                 Button(role: .destructive) {
-                                    withAnimation(.spring()) {
-                                        store.abandonWishlistItem(id: item.id)
-                                    }
+                                    itemToDelete = item
                                 } label: {
                                     Label(langManager.currentLanguage == .chinese ? "放弃" : "Pass", systemImage: "trash.fill")
                                 }
@@ -327,6 +324,30 @@ public struct WishlistMainView: View {
                         .font(.system(size: 15, weight: .bold))
                 }
             }
+        }
+        .alert(
+            langManager.currentLanguage == .chinese ? "确认删除此心愿？" : "Delete Wishlist Item?",
+            isPresented: Binding(
+                get: { itemToDelete != nil },
+                set: { if !$0 { itemToDelete = nil } }
+            ),
+            presenting: itemToDelete
+        ) { item in
+            Button(langManager.currentLanguage == .chinese ? "确认删除" : "Delete", role: .destructive) {
+                withAnimation(.spring()) {
+                    if item.isAbandoned {
+                        store.deleteWishlistItem(id: item.id)
+                    } else {
+                        store.abandonWishlistItem(id: item.id)
+                    }
+                }
+                itemToDelete = nil
+            }
+            Button(langManager.localized(.cancel), role: .cancel) {
+                itemToDelete = nil
+            }
+        } message: { item in
+            Text(langManager.currentLanguage == .chinese ? "确定要删除「\(item.title)」吗？此操作无法撤销。" : "Are you sure you want to delete \"\(item.title)\"?")
         }
         .sheet(isPresented: $isShowingAddSheet) {
             AddWishlistSheet()
@@ -416,11 +437,31 @@ struct AddWishlistSheet: View {
                                     .foregroundColor(BentoColors.wishlistRuby)
                                     .padding(.leading, 8)
                                 
+                                Button(action: {
+                                    if priceString.starts(with: "-") {
+                                        priceString = String(priceString.dropFirst())
+                                    } else if !priceString.isEmpty {
+                                        priceString = "-" + priceString
+                                    } else {
+                                        priceString = "-"
+                                    }
+                                    HapticManager.shared.selection()
+                                }) {
+                                    Text("±")
+                                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                                        .foregroundColor(priceString.starts(with: "-") ? .white : BentoColors.wishlistRuby)
+                                        .padding(.horizontal, 7)
+                                        .padding(.vertical, 3)
+                                        .background(priceString.starts(with: "-") ? BentoColors.wishlistRuby : BentoColors.wishlistRuby.opacity(0.12))
+                                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                                }
+                                .buttonStyle(.plain)
+                                
                                 TextField(
-                                    langManager.currentLanguage == .chinese ? "输入金额，如: 2999" : "e.g. 2999",
+                                    langManager.currentLanguage == .chinese ? "输入金额 (支持负数如: -200)" : "Amount (e.g. -200)",
                                     text: $priceString
                                 )
-                                .keyboardType(.decimalPad)
+                                .keyboardType(.numbersAndPunctuation)
                                 .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .padding(.vertical, 11)
                                 .padding(.trailing, 11)
@@ -518,20 +559,12 @@ struct AddWishlistSheet: View {
             .scrollDismissesKeyboard(.interactively)
             .dismissKeyboardOnTap()
             .background(BentoColors.bgPrimary.ignoresSafeArea())
-            .navigationTitle(langManager.currentLanguage == .chinese ? "新建心愿" : "New Wishlist Item")
+            .navigationTitle(langManager.currentLanguage == .chinese ? "新建剁手" : "New Wishlist Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(langManager.localized(.cancel)) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(langManager.localized(.done)) {
-                        UIApplication.shared.endEditing()
-                    }
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(BentoColors.wishlistRuby)
                 }
             }
         }
@@ -557,7 +590,7 @@ struct WishlistCard: View {
                 
                 Spacer()
                 
-                if item.targetPrice > 0 {
+                if item.targetPrice != 0 {
                     Text(currencyObj.formatted(item.targetPrice))
                         .font(.system(size: 15, weight: .heavy, design: .rounded))
                         .foregroundColor(BentoColors.wishlistRuby)
@@ -587,7 +620,7 @@ struct WishlistCard: View {
             } else if !item.isPurchased {
                 if item.coolOffDaysTotal >= 9999 {
                     HStack {
-                        Text(langManager.currentLanguage == .chinese ? "冷静期 ∞" : "Cool-off ∞")
+                        Text(langManager.currentLanguage == .chinese ? "冷静 ∞" : "Cool-off ∞")
                             .font(.system(size: 11, weight: .bold, design: .rounded))
                             .foregroundColor(BentoColors.wishlistRuby)
                         Spacer()
@@ -719,6 +752,10 @@ struct WishlistCard: View {
         .padding(14)
         .background(BentoColors.bgSecondary)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onEdit()
+        }
     }
 }
 
@@ -734,7 +771,7 @@ struct EditWishlistSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text(langManager.currentLanguage == .chinese ? "心愿详情" : "Details").font(.system(size: 11, weight: .bold, design: .rounded))) {
+                Section(header: Text(langManager.currentLanguage == .chinese ? "剁手详情" : "Details").font(.system(size: 11, weight: .bold, design: .rounded))) {
                     TextField(langManager.currentLanguage == .chinese ? "物品名称" : "Item Name", text: $item.title)
                     
                     Picker(langManager.currentLanguage == .chinese ? "货币单位" : "Currency", selection: $selectedCurrency) {
@@ -743,11 +780,11 @@ struct EditWishlistSheet: View {
                         }
                     }
                     
-                    TextField(langManager.currentLanguage == .chinese ? "预算价格" : "Budget Price", text: $priceString)
-                        .keyboardType(.decimalPad)
+                    TextField(langManager.currentLanguage == .chinese ? "预算价格 (支持负数)" : "Budget Price", text: $priceString)
+                        .keyboardType(.numbersAndPunctuation)
                 }
                 
-                Section(header: Text(langManager.currentLanguage == .chinese ? "冷静期设置" : "Cool-off Period").font(.system(size: 11, weight: .bold, design: .rounded))) {
+                Section(header: Text(langManager.currentLanguage == .chinese ? "剁手冷静" : "Cool-off Period").font(.system(size: 11, weight: .bold, design: .rounded))) {
                     Picker(langManager.currentLanguage == .chinese ? "冷静周期" : "Period", selection: $item.coolOffDaysTotal) {
                         Text(langManager.currentLanguage == .chinese ? "7天" : "7 Days").tag(7)
                         Text(langManager.currentLanguage == .chinese ? "14天" : "14 Days").tag(14)
@@ -767,7 +804,7 @@ struct EditWishlistSheet: View {
                     } label: {
                         HStack {
                             Spacer()
-                            Text(langManager.currentLanguage == .chinese ? "放弃此心愿" : "Delete Wishlist Item")
+                            Text(langManager.currentLanguage == .chinese ? "删除此剁手记录" : "Delete Item")
                             Spacer()
                         }
                     }
@@ -775,7 +812,7 @@ struct EditWishlistSheet: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .dismissKeyboardOnTap()
-            .navigationTitle(langManager.currentLanguage == .chinese ? "修改心愿" : "Edit Wishlist Item")
+            .navigationTitle(langManager.currentLanguage == .chinese ? "修改剁手" : "Edit Wishlist Item")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 priceString = String(format: "%.0f", item.targetPrice)
@@ -793,14 +830,6 @@ struct EditWishlistSheet: View {
                         HapticManager.shared.notification(.success)
                         dismiss()
                     }
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(langManager.localized(.done)) {
-                        UIApplication.shared.endEditing()
-                    }
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(BentoColors.wishlistRuby)
                 }
             }
         }

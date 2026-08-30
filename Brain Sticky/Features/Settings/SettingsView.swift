@@ -31,27 +31,7 @@ public struct SettingsView: View {
                     .listRowInsets(EdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14))
                 }
                 
-                Section(header: Text(langManager.localized(.securityHeader)).font(.system(size: 11, weight: .bold, design: .rounded))) {
-                    HStack {
-                        Image(systemName: authManager.biometricIcon)
-                            .foregroundColor(BentoColors.vaultViolet)
-                        Text(langManager.localized(.biometricGuard(authManager.biometricName)))
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
-                        Spacer()
-                        Text(langManager.localized(.biometricActive))
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundColor(BentoColors.groceryMint)
-                    }
-                    
-                    Toggle(isOn: $autoLockOnBackground) {
-                        HStack {
-                            Image(systemName: "lock.rotation")
-                                .foregroundColor(BentoColors.omniElectric)
-                            Text(langManager.localized(.autoLockBackground))
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
-                        }
-                    }
-                }
+                // MARK: - 触感反馈 (Haptics)
                 
                 Section(header: Text(langManager.localized(.hapticsHeader)).font(.system(size: 11, weight: .bold, design: .rounded))) {
                     Toggle(isOn: $enableHaptics) {
@@ -91,7 +71,7 @@ public struct SettingsView: View {
                         Text(langManager.localized(.version))
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                         Spacer()
-                        Text("1.0.0 (Build 2026.1)")
+                        Text("1.1.0 (Build 2)")
                             .font(.system(size: 13, design: .rounded))
                             .foregroundColor(.secondary)
                     }

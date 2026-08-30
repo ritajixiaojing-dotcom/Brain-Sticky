@@ -96,6 +96,7 @@ public struct StickyNoteItem: Identifiable, Codable, Hashable {
     public var content: String
     public var moodEmoji: String
     public var colorHex: String
+    public var textColorHex: String?
     public var isPinned: Bool
     public var isEphemeral: Bool
     public var createdAt: Date
@@ -105,6 +106,7 @@ public struct StickyNoteItem: Identifiable, Codable, Hashable {
         content: String,
         moodEmoji: String = "💡",
         colorHex: String = "#FFF7D1",
+        textColorHex: String? = "#1E293B",
         isPinned: Bool = false,
         isEphemeral: Bool = false,
         createdAt: Date = Date()
@@ -113,6 +115,7 @@ public struct StickyNoteItem: Identifiable, Codable, Hashable {
         self.content = content
         self.moodEmoji = moodEmoji
         self.colorHex = colorHex
+        self.textColorHex = textColorHex
         self.isPinned = isPinned
         self.isEphemeral = isEphemeral
         self.createdAt = createdAt
@@ -259,9 +262,17 @@ public enum WishlistCurrency: String, Codable, CaseIterable, Identifiable {
     
     public func formatted(_ price: Double) -> String {
         if self == .jpy {
-            return String(format: "%.0f 円", price)
+            if price < 0 {
+                return String(format: "-%.0f 円", abs(price))
+            } else {
+                return String(format: "%.0f 円", price)
+            }
         } else {
-            return String(format: "%@%.0f", symbol, price)
+            if price < 0 {
+                return String(format: "-%@%.0f", symbol, abs(price))
+            } else {
+                return String(format: "%@%.0f", symbol, price)
+            }
         }
     }
     
@@ -359,6 +370,7 @@ public struct CustomEntryItem: Identifiable, Codable, Hashable {
     public var targetDate: Date?
     public var count: Int
     public var createdAt: Date
+    public var lastCheckedInAt: Date?
     
     public init(
         id: UUID = UUID(),
@@ -368,7 +380,8 @@ public struct CustomEntryItem: Identifiable, Codable, Hashable {
         isCompleted: Bool = false,
         targetDate: Date? = nil,
         count: Int = 0,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        lastCheckedInAt: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -378,10 +391,11 @@ public struct CustomEntryItem: Identifiable, Codable, Hashable {
         self.targetDate = targetDate
         self.count = count
         self.createdAt = createdAt
+        self.lastCheckedInAt = lastCheckedInAt
     }
     
     enum CodingKeys: String, CodingKey {
-        case id, title, icon, detail, isCompleted, targetDate, count, createdAt
+        case id, title, icon, detail, isCompleted, targetDate, count, createdAt, lastCheckedInAt
     }
     
     public init(from decoder: Decoder) throws {
@@ -395,6 +409,41 @@ public struct CustomEntryItem: Identifiable, Codable, Hashable {
         self.targetDate = try container.decodeIfPresent(Date.self, forKey: .targetDate)
         self.count = try container.decodeIfPresent(Int.self, forKey: .count) ?? 0
         self.createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        self.lastCheckedInAt = try container.decodeIfPresent(Date.self, forKey: .lastCheckedInAt)
+    }
+    
+    /// 检查是否在 24 小时内已打卡
+    public var isCheckedInWithin24Hours: Bool {
+        guard let last = lastCheckedInAt else { return count > 0 }
+        return Date().timeIntervalSince(last) < 24 * 3600
+    }
+    
+    /// 距离 24 小时后的下一次打卡剩余时间字符串 (如 "23小时50分后 +1")
+    public func nextCheckInCountdown(isChinese: Bool = true) -> String {
+        guard let last = lastCheckedInAt else {
+            return isChinese ? "24小时后可再次打卡" : "Next check-in in 24h"
+        }
+        let elapsed = Date().timeIntervalSince(last)
+        let total24h: TimeInterval = 24 * 3600
+        if elapsed >= total24h {
+            return isChinese ? "已满24小时，可+1打卡 ✨" : "24h reached, ready for +1 ✨"
+        }
+        let remaining = total24h - elapsed
+        let hours = Int(remaining) / 3600
+        let minutes = (Int(remaining) % 3600) / 60
+        if isChinese {
+            if hours > 0 {
+                return "24小时倒数：\(hours)小时\(minutes)分后可再次打卡"
+            } else {
+                return "24小时倒数：\(max(1, minutes))分钟后可再次打卡"
+            }
+        } else {
+            if hours > 0 {
+                return "Next +1 available in \(hours)h \(minutes)m"
+            } else {
+                return "Next +1 available in \(max(1, minutes))m"
+            }
+        }
     }
     
     public static func suggestIcon(for text: String) -> String {

@@ -14,7 +14,6 @@ public struct TodoListView: View {
     @State private var newTodoText: String = ""
     @State private var selectedPriority: TodoPriority = .urgent
     @State private var quickMinutes: Int? = 15
-    @State private var isShowingOmni: Bool = false
     @State private var editingItem: TodoItem? = nil
     
     enum TodoFilter: String, CaseIterable {
@@ -22,7 +21,6 @@ public struct TodoListView: View {
         case urgent = "紧急"
         case normal = "日常"
         case someday = "随缘"
-        case done = "完成"
         
         func title(lang: AppLanguage) -> String {
             switch self {
@@ -30,7 +28,6 @@ public struct TodoListView: View {
             case .urgent: return lang == .chinese ? "紧急" : "Urgent"
             case .normal: return lang == .chinese ? "日常" : "Normal"
             case .someday: return lang == .chinese ? "随缘" : "Someday"
-            case .done: return lang == .chinese ? "完成" : "Done"
             }
         }
     }
@@ -39,13 +36,15 @@ public struct TodoListView: View {
         store.todos.filter { item in
             switch filterMode {
             case .all: return true
-            case .urgent: return item.priority == .urgent && !item.isCompleted
-            case .normal: return item.priority == .normal && !item.isCompleted
-            case .someday: return item.priority == .someday && !item.isCompleted
-            case .done: return item.isCompleted
+            case .urgent: return item.priority == .urgent
+            case .normal: return item.priority == .normal
+            case .someday: return item.priority == .someday
             }
         }
     }
+    
+    @State private var itemToDelete: TodoItem? = nil
+    @State private var isShowingDeleteAlert: Bool = false
     
     public var body: some View {
         VStack(spacing: 0) {
@@ -61,6 +60,7 @@ public struct TodoListView: View {
                         text: $newTodoText
                     )
                     .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .submitLabel(.done)
                     .onSubmit(addQuickTodo)
                     
                     if !newTodoText.isEmpty {
@@ -77,7 +77,7 @@ public struct TodoListView: View {
                 .background(BentoColors.bgSecondary)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 
-                // 定时预设 (含 ∞ 无期限) 与 优先级联动筛选
+                // 定时预设 (含 ∞ 无期限) 与 优先级选择
                 let minuteLabels: [(Int?, String)] = [
                     (5, langManager.currentLanguage == .chinese ? "5分" : "5m"),
                     (15, langManager.currentLanguage == .chinese ? "15分" : "15m"),
@@ -109,13 +109,6 @@ public struct TodoListView: View {
                         ForEach(TodoPriority.allCases, id: \.self) { p in
                             Button(action: {
                                 selectedPriority = p
-                                withAnimation(.spring()) {
-                                    switch p {
-                                    case .urgent: filterMode = .urgent
-                                    case .normal: filterMode = .normal
-                                    case .someday: filterMode = .someday
-                                    }
-                                }
                                 HapticManager.shared.selection()
                             }) {
                                 HStack {
@@ -175,81 +168,48 @@ public struct TodoListView: View {
                     .listRowBackground(Color.clear)
                 } else {
                     ForEach(filteredTodos) { item in
-                        HStack(spacing: 10) {
-                            Button(action: {
-                                withAnimation(.spring()) {
-                                    store.toggleTodo(item)
-                                }
-                            }) {
-                                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(item.isCompleted ? BentoColors.groceryMint : (item.priority == .urgent ? BentoColors.urgentCoral : .secondary))
+                        TodoItemRow(
+                            langManager: langManager,
+                            item: item,
+                            onToggle: {
+                                store.toggleTodo(item)
+                            },
+                            onEdit: {
+                                editingItem = item
+                            },
+                            onDeleteRequest: {
+                                itemToDelete = item
+                                isShowingDeleteAlert = true
                             }
-                            .buttonStyle(.plain)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(item.title)
-                                    .font(.system(size: 14, weight: .medium, design: .rounded))
-                                    .strikethrough(item.isCompleted, color: .secondary)
-                                    .foregroundColor(item.isCompleted ? .secondary : .primary)
-                                
-                                if let mins = item.reminderMinutes {
-                                    Text(langManager.currentLanguage == .chinese ? "\(mins)分后" : "in \(mins)m")
-                                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                                        .foregroundColor(.orange)
-                                }
-                            }
-                            
-                            Spacer()
-                            
-                            Button(action: { editingItem = item }) {
-                                Image(systemName: "pencil")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.vertical, 3)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            editingItem = item
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                store.deleteTodo(id: item.id)
-                            } label: {
-                                Label(langManager.currentLanguage == .chinese ? "删除" : "Delete", systemImage: "trash")
-                            }
-                        }
+                        )
                     }
                 }
             }
             .listStyle(.insetGrouped)
             .scrollDismissesKeyboard(.interactively)
-            .dismissKeyboardOnTap()
         }
-        .dismissKeyboardOnTap()
         .background(BentoColors.bgPrimary.ignoresSafeArea())
         .navigationTitle(langManager.localized(.todoTitle))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: { isShowingOmni = true }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 15, weight: .bold))
+        .alert(
+            langManager.currentLanguage == .chinese ? "确认删除待办？" : "Delete Todo?",
+            isPresented: $isShowingDeleteAlert
+        ) {
+            Button(langManager.currentLanguage == .chinese ? "删除" : "Delete", role: .destructive) {
+                if let item = itemToDelete {
+                    withAnimation {
+                        store.deleteTodo(id: item.id)
+                    }
                 }
+                itemToDelete = nil
             }
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(langManager.localized(.done)) {
-                    UIApplication.shared.endEditing()
-                }
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(BentoColors.urgentCoral)
+            Button(langManager.localized(.cancel), role: .cancel) {
+                itemToDelete = nil
             }
-        }
-        .sheet(isPresented: $isShowingOmni) {
-            AddTodoSheet()
+        } message: {
+            if let item = itemToDelete {
+                Text(langManager.currentLanguage == .chinese ? "确定要删除待办「\(item.title)」吗？" : "Are you sure you want to delete \"\(item.title)\"?")
+            }
         }
         .sheet(item: $editingItem) { item in
             EditTodoSheet(item: item)
@@ -267,6 +227,78 @@ public struct TodoListView: View {
         )
         store.addTodo(item)
         newTodoText = ""
+    }
+}
+
+// MARK: - Todo Item Row
+struct TodoItemRow: View {
+    @ObservedObject var store = DataStore.shared
+    @ObservedObject var langManager: AppLanguageManager
+    let item: TodoItem
+    let onToggle: () -> Void
+    let onEdit: () -> Void
+    let onDeleteRequest: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 10) {
+            Button(action: {
+                withAnimation(.spring()) {
+                    onToggle()
+                }
+            }) {
+                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20))
+                    .foregroundColor(item.isCompleted ? BentoColors.groceryMint : (item.priority == .urgent ? BentoColors.urgentCoral : .secondary))
+            }
+            .buttonStyle(.plain)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .strikethrough(item.isCompleted, color: .secondary)
+                    .foregroundColor(item.isCompleted ? .secondary : .primary)
+                
+                if let mins = item.reminderMinutes {
+                    Text(langManager.currentLanguage == .chinese ? "\(mins)分后" : "in \(mins)m")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundColor(.orange)
+                }
+            }
+            
+            Spacer()
+            
+            // ⚡ 帮我办 / 分享给别人
+            ShareLink(
+                item: "⚡【请你帮我办件事】\n\(item.title)\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)",
+                preview: SharePreview("帮我办: \(item.title)", image: Image(systemName: "bolt.horizontal.fill"))
+            ) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(BentoColors.urgentCoral)
+                    .padding(4)
+            }
+            .buttonStyle(.plain)
+            
+            Button(action: onEdit) {
+                Image(systemName: "pencil")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .padding(4)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 3)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onEdit()
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                onDeleteRequest()
+            } label: {
+                Label(langManager.currentLanguage == .chinese ? "删除" : "Delete", systemImage: "trash")
+            }
+        }
     }
 }
 
@@ -300,6 +332,7 @@ struct AddTodoSheet: View {
                                 text: $title
                             )
                             .font(.system(size: 15, weight: .medium, design: .rounded))
+                            .submitLabel(.done)
                             .padding(11)
                             .background(BentoColors.bgCard)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -408,14 +441,6 @@ struct AddTodoSheet: View {
                     Button(langManager.localized(.cancel)) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                 }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(langManager.localized(.done)) {
-                        UIApplication.shared.endEditing()
-                    }
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(BentoColors.urgentCoral)
-                }
             }
         }
     }
@@ -427,62 +452,215 @@ struct EditTodoSheet: View {
     @ObservedObject var store = DataStore.shared
     @ObservedObject var langManager = AppLanguageManager.shared
     @State var item: TodoItem
+    @State private var isShowingDeleteConfirm: Bool = false
+    
+    private func reminderText(for mins: Int?) -> String {
+        guard let mins = mins else {
+            return langManager.currentLanguage == .chinese ? "无提醒" : "No reminder"
+        }
+        switch mins {
+        case 5: return langManager.currentLanguage == .chinese ? "5分钟后" : "In 5 min"
+        case 15: return langManager.currentLanguage == .chinese ? "15分钟后" : "In 15 min"
+        case 30: return langManager.currentLanguage == .chinese ? "30分钟后" : "In 30 min"
+        case 60: return langManager.currentLanguage == .chinese ? "1小时后" : "In 1 hour"
+        case 120: return langManager.currentLanguage == .chinese ? "2小时后" : "In 2 hours"
+        case 480: return langManager.currentLanguage == .chinese ? "今晚" : "Tonight"
+        case 1440: return langManager.currentLanguage == .chinese ? "明天" : "Tomorrow"
+        default: return langManager.currentLanguage == .chinese ? "\(mins)分钟后" : "In \(mins) min"
+        }
+    }
     
     var body: some View {
         NavigationStack {
-            Form {
-                Section(header: Text(langManager.currentLanguage == .chinese ? "内容" : "Content").font(.system(size: 11, weight: .bold, design: .rounded))) {
-                    TextField(langManager.currentLanguage == .chinese ? "待办内容" : "Todo text", text: $item.title)
-                }
-                
-                Section(header: Text(langManager.currentLanguage == .chinese ? "属性" : "Attributes").font(.system(size: 11, weight: .bold, design: .rounded))) {
-                    Picker(langManager.currentLanguage == .chinese ? "优先级" : "Priority", selection: $item.priority) {
-                        ForEach(TodoPriority.allCases, id: \.self) { p in
-                            Text(p.localized(lang: langManager.currentLanguage)).tag(p)
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    // 内容编辑卡片
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(langManager.currentLanguage == .chinese ? "待办内容" : "Todo text")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(.secondary)
+                        
+                        TextField(
+                            langManager.currentLanguage == .chinese ? "待办内容..." : "Todo text...",
+                            text: $item.title
+                        )
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .padding(12)
+                        .background(BentoColors.bgCard)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .padding(14)
+                    .background(BentoColors.bgSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    
+                    // 属性选择卡片 (下拉菜单)
+                    VStack(spacing: 12) {
+                        // 优先级下拉菜单
+                        HStack {
+                            Label(
+                                langManager.currentLanguage == .chinese ? "优先级" : "Priority",
+                                systemImage: "flag.fill"
+                            )
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Menu {
+                                ForEach(TodoPriority.allCases, id: \.self) { p in
+                                    Button {
+                                        item.priority = p
+                                        HapticManager.shared.selection()
+                                    } label: {
+                                        HStack {
+                                            Text(p.localized(lang: langManager.currentLanguage))
+                                            if item.priority == p {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(item.priority.color)
+                                        .frame(width: 8, height: 8)
+                                    Text(item.priority.localized(lang: langManager.currentLanguage))
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .foregroundColor(item.priority.color)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(item.priority.color.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            }
+                        }
+                        
+                        Divider()
+                            .padding(.vertical, 2)
+                        
+                        // 提醒时间下拉菜单
+                        HStack {
+                            Label(
+                                langManager.currentLanguage == .chinese ? "提醒时间" : "Reminder",
+                                systemImage: "bell.fill"
+                            )
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Menu {
+                                let options: [(Int?, String)] = [
+                                    (nil, langManager.currentLanguage == .chinese ? "无提醒" : "No reminder"),
+                                    (5, langManager.currentLanguage == .chinese ? "5分钟后" : "In 5 min"),
+                                    (15, langManager.currentLanguage == .chinese ? "15分钟后" : "In 15 min"),
+                                    (30, langManager.currentLanguage == .chinese ? "30分钟后" : "In 30 min"),
+                                    (60, langManager.currentLanguage == .chinese ? "1小时后" : "In 1 hour"),
+                                    (120, langManager.currentLanguage == .chinese ? "2小时后" : "In 2 hours"),
+                                    (480, langManager.currentLanguage == .chinese ? "今晚" : "Tonight"),
+                                    (1440, langManager.currentLanguage == .chinese ? "明天" : "Tomorrow")
+                                ]
+                                ForEach(options, id: \.1) { opt in
+                                    Button {
+                                        item.reminderMinutes = opt.0
+                                        HapticManager.shared.selection()
+                                    } label: {
+                                        HStack {
+                                            Text(opt.1)
+                                            if item.reminderMinutes == opt.0 {
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: item.reminderMinutes == nil ? "bell.slash" : "bell.fill")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(item.reminderMinutes == nil ? .secondary : BentoColors.urgentCoral)
+                                    Text(reminderText(for: item.reminderMinutes))
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .foregroundColor(item.reminderMinutes == nil ? .secondary : BentoColors.urgentCoral)
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background((item.reminderMinutes == nil ? Color.gray : BentoColors.urgentCoral).opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            }
                         }
                     }
+                    .padding(14)
+                    .background(BentoColors.bgSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     
-                    Picker(langManager.currentLanguage == .chinese ? "提醒" : "Reminder", selection: $item.reminderMinutes) {
-                        Text(langManager.currentLanguage == .chinese ? "无提醒" : "No reminder").tag(nil as Int?)
-                        Text(langManager.currentLanguage == .chinese ? "5分钟后" : "In 5 min").tag(5 as Int?)
-                        Text(langManager.currentLanguage == .chinese ? "15分钟后" : "In 15 min").tag(15 as Int?)
-                        Text(langManager.currentLanguage == .chinese ? "30分钟后" : "In 30 min").tag(30 as Int?)
-                        Text(langManager.currentLanguage == .chinese ? "60分钟后" : "In 60 min").tag(60 as Int?)
+                    // 分享托付按钮
+                    ShareLink(
+                        item: "⚡【请你帮我办件事】\n\(item.title)\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)",
+                        preview: SharePreview("帮我办: \(item.title)", image: Image(systemName: "bolt.horizontal.fill"))
+                    ) {
+                        HStack {
+                            Spacer()
+                            Label(langManager.currentLanguage == .chinese ? "⚡ 请别人帮办 (分享)" : "⚡ Delegate Todo (Share)", systemImage: "square.and.arrow.up")
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .foregroundColor(BentoColors.urgentCoral)
+                            Spacer()
+                        }
+                        .padding(.vertical, 12)
+                        .background(BentoColors.bgSecondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
-                }
-                
-                Section {
+                    
+                    // 删除按钮
                     Button(role: .destructive) {
-                        store.deleteTodo(id: item.id)
-                        dismiss()
+                        isShowingDeleteConfirm = true
                     } label: {
                         HStack {
                             Spacer()
+                            Image(systemName: "trash")
                             Text(langManager.currentLanguage == .chinese ? "删除待办" : "Delete Todo")
                             Spacer()
                         }
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(.red)
+                        .padding(.vertical, 12)
+                        .background(Color.red.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                 }
+                .padding(16)
             }
-            .scrollDismissesKeyboard(.interactively)
-            .dismissKeyboardOnTap()
+            .background(BentoColors.bgPrimary.ignoresSafeArea())
             .navigationTitle(langManager.currentLanguage == .chinese ? "修改待办" : "Edit Todo")
             .navigationBarTitleDisplayMode(.inline)
+            .alert(
+                langManager.currentLanguage == .chinese ? "确认删除待办？" : "Delete Todo?",
+                isPresented: $isShowingDeleteConfirm
+            ) {
+                Button(langManager.currentLanguage == .chinese ? "删除" : "Delete", role: .destructive) {
+                    store.deleteTodo(id: item.id)
+                    dismiss()
+                }
+                Button(langManager.localized(.cancel), role: .cancel) {}
+            } message: {
+                Text(langManager.currentLanguage == .chinese ? "确定要删除此待办吗？" : "Are you sure you want to delete this todo?")
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(langManager.localized(.cancel)) { dismiss() }
+                        .font(.system(size: 15, weight: .medium))
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(langManager.localized(.save)) {
                         store.updateTodo(item)
                         HapticManager.shared.notification(.success)
                         dismiss()
-                    }
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(langManager.localized(.done)) {
-                        UIApplication.shared.endEditing()
                     }
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(BentoColors.urgentCoral)

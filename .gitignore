@@ -17,6 +17,7 @@ xcuserdata/
 *.dSYM.zip
 *.dSYM
 *.xcarchive
+ExportOptions.plist
 
 # Swift Package Manager
 .build/

@@ -12,6 +12,7 @@ public struct BentoDashboardView: View {
     @ObservedObject var langManager = AppLanguageManager.shared
     @State private var isShowingOmni: Bool = false
     @State private var isShowingSettings: Bool = false
+    @State private var isShowingCloudsOverview: Bool = false
     
     let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -47,19 +48,25 @@ public struct BentoDashboardView: View {
                             
                             Spacer()
                             
-                            // 可爱脑雾气泡
-                            HStack(spacing: 4) {
-                                Text("☁️")
-                                    .font(.system(size: 12))
-                                Text(langManager.localized(.cloudsCount(store.totalActiveBrainLoadCount)))
-                                    .font(.system(size: 12, weight: .heavy, design: .rounded))
-                                    .foregroundColor(BentoColors.noteAmber)
+                            // 可爱脑雾气泡 (点击弹出今日所有活跃脑雾内容总览)
+                            Button(action: {
+                                isShowingCloudsOverview = true
+                                HapticManager.shared.impact(.medium)
+                            }) {
+                                HStack(spacing: 4) {
+                                    Text("☁️")
+                                        .font(.system(size: 12))
+                                    Text(langManager.localized(.cloudsCount(store.totalActiveBrainLoadCount)))
+                                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                                        .foregroundColor(BentoColors.noteAmber)
+                                }
+                                .padding(.horizontal, 11)
+                                .padding(.vertical, 6)
+                                .background(BentoColors.noteAmber.opacity(0.15))
+                                .clipShape(Capsule())
+                                .shadow(color: BentoColors.noteAmber.opacity(0.2), radius: 6, x: 0, y: 2)
                             }
-                            .padding(.horizontal, 11)
-                            .padding(.vertical, 6)
-                            .background(BentoColors.noteAmber.opacity(0.15))
-                            .clipShape(Capsule())
-                            .shadow(color: BentoColors.noteAmber.opacity(0.2), radius: 6, x: 0, y: 2)
+                            .bouncyTap()
                             
                             Button(action: {
                                 isShowingSettings = true
@@ -196,6 +203,9 @@ public struct BentoDashboardView: View {
             }
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView()
+            }
+            .sheet(isPresented: $isShowingCloudsOverview) {
+                CloudsOverviewSheet()
             }
         }
     }
@@ -794,3 +804,170 @@ struct SearchCategoryCard<Content: View>: View {
         .shadow(color: Color(red: 145/255, green: 135/255, blue: 165/255).opacity(0.1), radius: 8, x: 0, y: 3)
     }
 }
+
+// MARK: - 脑雾总览弹窗 (Clouds Overview Sheet)
+struct CloudsOverviewSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var store = DataStore.shared
+    @ObservedObject var langManager = AppLanguageManager.shared
+    
+    var pendingTodos: [TodoItem] {
+        store.todos.filter { !$0.isCompleted }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 14) {
+                    // 顶部总览卡片
+                    HStack(spacing: 12) {
+                        Text("☁️")
+                            .font(.system(size: 32))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(langManager.currentLanguage == .chinese ? "今日脑雾与外脑总览" : "Today's Mind Overview")
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                            Text(langManager.currentLanguage == .chinese ? "共收集 \(store.totalActiveBrainLoadCount) 项活跃外脑记录" : "\(store.totalActiveBrainLoadCount) active items in total")
+                                .font(.system(size: 13, design: .rounded))
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(16)
+                    .background(BentoColors.noteAmber.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+                    
+                    // 1. 待办 (Todos)
+                    if !pendingTodos.isEmpty {
+                        OverviewCategoryCard(
+                            title: langManager.localized(.todoTitle),
+                            icon: "checklist",
+                            color: BentoColors.urgentCoral,
+                            items: pendingTodos.map { $0.title }
+                        )
+                    }
+                    
+                    // 2. 日常便签 (Sticky Notes)
+                    if !store.stickyNotes.isEmpty {
+                        OverviewCategoryCard(
+                            title: langManager.localized(.dropsTitle),
+                            icon: "sparkles",
+                            color: BentoColors.noteAmber,
+                            items: store.stickyNotes.map { "\($0.moodEmoji) \($0.content)" }
+                        )
+                    }
+                    
+                    // 3. 买菜清单 (Grocery)
+                    let pendingGroceries = store.groceryItems.filter { !$0.isBought }
+                    if !pendingGroceries.isEmpty {
+                        OverviewCategoryCard(
+                            title: langManager.localized(.groceryTitle),
+                            icon: "cart.fill",
+                            color: BentoColors.groceryMint,
+                            items: pendingGroceries.map { "\($0.aisle.icon) \($0.name)" }
+                        )
+                    }
+                    
+                    // 4. 剁手心愿 (Wishlist)
+                    let activeWishlist = store.wishlistItems.filter { !$0.isPurchased && !$0.isAbandoned }
+                    if !activeWishlist.isEmpty {
+                        OverviewCategoryCard(
+                            title: langManager.localized(.wishlistTitle),
+                            icon: "gift.fill",
+                            color: BentoColors.wishlistRuby,
+                            items: activeWishlist.map { "\($0.currency)\(Int($0.targetPrice)) \($0.title)" }
+                        )
+                    }
+                    
+                    // 5. 密码备忘 (Vault)
+                    if !store.vaultItems.isEmpty {
+                        OverviewCategoryCard(
+                            title: langManager.localized(.vaultTitle),
+                            icon: "lock.fill",
+                            color: BentoColors.vaultViolet,
+                            items: store.vaultItems.map { "\($0.title) (••••••••)" }
+                        )
+                    }
+                    
+                    if store.totalActiveBrainLoadCount == 0 {
+                        VStack(spacing: 8) {
+                            Text("✨")
+                                .font(.system(size: 36))
+                                .padding(.top, 20)
+                            Text(langManager.currentLanguage == .chinese ? "当前脑袋超放空，暂无脑雾记录" : "Mind is completely clear!")
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 30)
+                    }
+                }
+                .padding(.bottom, 20)
+            }
+            .background(BentoColors.bgPrimary.ignoresSafeArea())
+            .navigationTitle(langManager.currentLanguage == .chinese ? "脑雾总览" : "Mind Overview")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(langManager.localized(.done)) {
+                        dismiss()
+                    }
+                    .font(.system(size: 15, weight: .bold))
+                }
+            }
+        }
+    }
+}
+
+struct OverviewCategoryCard: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let items: [String]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(color)
+                Text(title)
+                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+                    .foregroundColor(color)
+                Spacer()
+                Text("\(items.count)")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(color)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(color.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+            
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(items.prefix(4), id: \.self) { text in
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(color.opacity(0.6))
+                            .frame(width: 4, height: 4)
+                        Text(text)
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .lineLimit(1)
+                    }
+                }
+                if items.count > 4 {
+                    Text("+ 还有 \(items.count - 4) 项...")
+                        .font(.system(size: 11, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 10)
+                }
+            }
+        }
+        .padding(14)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        .padding(.horizontal, 16)
+    }
+}
+

@@ -15,6 +15,9 @@ public struct GroceryListView: View {
     @State private var isShowingFrequentDrawer: Bool = false
     @State private var editingItem: GroceryItem? = nil
     
+    @State private var itemToDelete: GroceryItem? = nil
+    @State private var isShowingDeleteAlert: Bool = false
+    
     var groupedItems: [GroceryAisle: [GroceryItem]] {
         Dictionary(grouping: store.groceryItems, by: { $0.aisle })
     }
@@ -58,37 +61,43 @@ public struct GroceryListView: View {
             .padding(.vertical, 8)
             .background(BentoColors.bgSecondary)
             
-            // 舒适大尺寸快速添加栏 (Enlarged & Cute Quick Add Bar)
-            HStack(spacing: 10) {
-                // 品类快速点选胶囊 (大字号 + 萌系Emoji)
+            // 舒适大尺寸快速添加栏 (Enlarged & Cute Quick Add Bar with Left Category Menu)
+            HStack(spacing: 8) {
+                // 左侧分类下拉菜单 (Left Aisle Dropdown Menu)
                 Menu {
                     ForEach(GroceryAisle.allCases) { aisle in
-                        Button(aisle.cuteTitle) { 
+                        Button(action: {
                             selectedAisle = aisle
                             HapticManager.shared.selection()
+                        }) {
+                            Label("\(aisle.icon) \(aisle.localized(lang: langManager.currentLanguage))", systemImage: selectedAisle == aisle ? "checkmark" : "")
                         }
                     }
                 } label: {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 3) {
                         Text(selectedAisle.icon)
-                            .font(.system(size: 15))
+                            .font(.system(size: 16))
                         Text(selectedAisle.localized(lang: langManager.currentLanguage))
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundColor(.primary)
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(BentoColors.groceryMint)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(BentoColors.groceryMint.opacity(0.8))
                     }
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 8)
-                    .background(BentoColors.groceryMint.opacity(0.12))
-                    .clipShape(Capsule())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(BentoColors.groceryMint.opacity(0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
+                .buttonStyle(.plain)
                 .bouncyTap(scale: 0.95)
-                
+
                 // 大字号输入框
                 TextField(
                     langManager.currentLanguage == .chinese ? "想买点什么呢 🍓..." : "What to buy 🍓...",
                     text: $newItemName
                 )
-                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .font(.system(size: 15, weight: .medium, design: .rounded))
                 .submitLabel(.done)
                 .onSubmit(addNewGrocery)
                 
@@ -136,52 +145,54 @@ public struct GroceryListView: View {
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
                 } else {
-                    ForEach(GroceryAisle.allCases) { aisle in
-                        if let items = groupedItems[aisle], !items.isEmpty {
-                            Section(header: GroceryAisleSectionHeader(aisle: aisle, count: items.count)) {
-                                ForEach(items) { item in
-                                    GroceryItemRow(item: item, onEdit: {
-                                        editingItem = item
-                                    })
-                                }
+                    ForEach(store.groceryItems) { item in
+                        GroceryItemRow(
+                            item: item,
+                            onEdit: { editingItem = item },
+                            onDeleteRequest: {
+                                itemToDelete = item
+                                isShowingDeleteAlert = true
                             }
-                        }
+                        )
                     }
                 }
             }
             .listStyle(.insetGrouped)
             .scrollDismissesKeyboard(.interactively)
-            .dismissKeyboardOnTap()
         }
-        .dismissKeyboardOnTap()
         .background(BentoColors.bgPrimary.ignoresSafeArea())
         .navigationTitle(langManager.localized(.groceryTitle))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
-                    Button(action: { store.clearCompletedGrocery() }) {
+                    Button(action: {
+                        withAnimation {
+                            store.clearCompletedGrocery()
+                        }
+                    }) {
                         Label(langManager.currentLanguage == .chinese ? "清空已买" : "Clear Bought", systemImage: "checkmark.bubble")
-                    }
-                    Button(action: { isShowingFrequentDrawer = true }) {
-                        Label(langManager.currentLanguage == .chinese ? "常购库" : "Frequent Items", systemImage: "arrow.triangle.2.circlepath")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                         .font(.system(size: 15))
                 }
             }
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button(langManager.localized(.done)) {
-                    UIApplication.shared.endEditing()
-                }
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(BentoColors.groceryMint)
-            }
         }
-        .sheet(isPresented: $isShowingFrequentDrawer) {
-            FrequentGroceryDrawer()
+        .alert(
+            langManager.currentLanguage == .chinese ? "确认删除买菜项？" : "Delete Grocery Item?",
+            isPresented: $isShowingDeleteAlert,
+            presenting: itemToDelete
+        ) { item in
+            Button(langManager.currentLanguage == .chinese ? "删除" : "Delete", role: .destructive) {
+                store.deleteGroceryItem(id: item.id)
+                itemToDelete = nil
+            }
+            Button(langManager.localized(.cancel), role: .cancel) {
+                itemToDelete = nil
+            }
+        } message: { item in
+            Text(langManager.currentLanguage == .chinese ? "确定要删除「\(item.name)」吗？" : "Are you sure you want to delete \"\(item.name)\"?")
         }
         .sheet(item: $editingItem) { item in
             EditGrocerySheet(item: item)
@@ -210,6 +221,7 @@ struct GroceryItemRow: View {
     @ObservedObject var store = DataStore.shared
     let item: GroceryItem
     var onEdit: () -> Void
+    var onDeleteRequest: () -> Void
     
     var isFrequent: Bool {
         store.frequentGroceryList.contains(where: { $0.name == item.name })
@@ -227,6 +239,9 @@ struct GroceryItemRow: View {
                     .foregroundColor(item.isBought ? BentoColors.groceryMint : .secondary)
             }
             .buttonStyle(.plain)
+            
+            Text(item.aisle.icon)
+                .font(.system(size: 16))
             
             HStack(spacing: 4) {
                 Text(item.name)
@@ -279,9 +294,9 @@ struct GroceryItemRow: View {
             }
             .tint(.orange)
         }
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
-                store.deleteGroceryItem(id: item.id)
+                onDeleteRequest()
             } label: {
                 Label(AppLanguageManager.shared.currentLanguage == .chinese ? "删除" : "Delete", systemImage: "trash")
             }
@@ -299,7 +314,7 @@ struct GroceryAisleSectionHeader: View {
             CuteHollowTitleView(
                 text: aisle.cuteTitle,
                 fontSize: 16,
-                strokeColor: Color(red: 155/255, green: 145/255, blue: 168/255),
+                strokeColor: Color(red: 120/255, green: 112/255, blue: 135/255),
                 strokeWidth: 1.15,
                 fillColor: Color.white
             )
@@ -325,12 +340,14 @@ struct EditGrocerySheet: View {
     @ObservedObject var store = DataStore.shared
     @ObservedObject var langManager = AppLanguageManager.shared
     @State var item: GroceryItem
+    @State private var isShowingDeleteConfirm: Bool = false
     
     var body: some View {
         NavigationStack {
             Form {
                 Section(header: Text(langManager.currentLanguage == .chinese ? "物品名称" : "Item Name").font(.system(size: 11, weight: .bold, design: .rounded))) {
                     TextField(langManager.currentLanguage == .chinese ? "物品名" : "Item Name", text: $item.name)
+                        .submitLabel(.done)
                 }
                 
                 Section(header: Text(langManager.currentLanguage == .chinese ? "分区归类" : "Category").font(.system(size: 11, weight: .bold, design: .rounded))) {
@@ -344,44 +361,26 @@ struct EditGrocerySheet: View {
                             CuteHollowTitleView(
                                 text: item.aisle.localized(lang: langManager.currentLanguage),
                                 fontSize: 14,
-                                strokeColor: Color(red: 155/255, green: 145/255, blue: 168/255),
+                                strokeColor: Color(red: 120/255, green: 112/255, blue: 135/255),
                                 strokeWidth: 1.0,
                                 fillColor: Color.white
                             )
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(BentoColors.groceryMint.opacity(0.14))
-                        .clipShape(Capsule())
                     }
                     
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(GroceryAisle.allCases) { aisle in
-                                Button(action: {
-                                    item.aisle = aisle
-                                    HapticManager.shared.selection()
-                                }) {
-                                    HStack(spacing: 3) {
-                                        Text(aisle.icon)
-                                            .font(.system(size: 12))
-                                        Text(aisle.localized(lang: langManager.currentLanguage))
-                                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                                    }
-                                    .padding(.horizontal, 11)
-                                    .padding(.vertical, 6)
-                                    .background(item.aisle == aisle ? BentoColors.groceryMint : BentoColors.bgCard)
-                                    .foregroundColor(item.aisle == aisle ? .white : .primary)
-                                    .clipShape(Capsule())
-                                }
-                                .bouncyTap(scale: 0.95)
-                            }
+                    Picker(langManager.currentLanguage == .chinese ? "修改分区" : "Change Category", selection: $item.aisle) {
+                        ForEach(GroceryAisle.allCases) { aisle in
+                            Text(aisle.cuteTitle).tag(aisle)
                         }
-                        .padding(.vertical, 3)
                     }
                 }
                 
-                Section(header: Text(langManager.currentLanguage == .chinese ? "常购属性" : "Frequent Item").font(.system(size: 11, weight: .bold, design: .rounded))) {
+                Section(header: Text(langManager.currentLanguage == .chinese ? "数量/备注" : "Quantity / Notes").font(.system(size: 11, weight: .bold, design: .rounded))) {
+                    TextField(langManager.currentLanguage == .chinese ? "如: 2袋 / 500g" : "e.g. 2 bags / 500g", text: $item.quantity)
+                        .submitLabel(.done)
+                }
+                
+                Section {
                     Toggle(isOn: $item.isFrequent) {
                         HStack(spacing: 6) {
                             Image(systemName: item.isFrequent ? "star.fill" : "star")
@@ -394,8 +393,7 @@ struct EditGrocerySheet: View {
                 
                 Section {
                     Button(role: .destructive) {
-                        store.deleteGroceryItem(id: item.id)
-                        dismiss()
+                        isShowingDeleteConfirm = true
                     } label: {
                         HStack {
                             Spacer()
@@ -409,6 +407,18 @@ struct EditGrocerySheet: View {
             .dismissKeyboardOnTap()
             .navigationTitle(langManager.currentLanguage == .chinese ? "修改物品" : "Edit Item")
             .navigationBarTitleDisplayMode(.inline)
+            .alert(
+                langManager.currentLanguage == .chinese ? "确认删除此物品？" : "Delete Grocery Item?",
+                isPresented: $isShowingDeleteConfirm
+            ) {
+                Button(langManager.currentLanguage == .chinese ? "删除" : "Delete", role: .destructive) {
+                    store.deleteGroceryItem(id: item.id)
+                    dismiss()
+                }
+                Button(langManager.localized(.cancel), role: .cancel) {}
+            } message: {
+                Text(langManager.currentLanguage == .chinese ? "确定要删除「\(item.name)」吗？" : "Are you sure you want to delete \"\(item.name)\"?")
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(langManager.localized(.cancel)) { dismiss() }
@@ -419,14 +429,6 @@ struct EditGrocerySheet: View {
                         HapticManager.shared.notification(.success)
                         dismiss()
                     }
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(langManager.localized(.done)) {
-                        UIApplication.shared.endEditing()
-                    }
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(BentoColors.groceryMint)
                 }
             }
         }
@@ -594,14 +596,6 @@ struct FrequentGroceryDrawer: View {
                                 .foregroundColor(.red)
                         }
                     }
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(langManager.localized(.done)) {
-                        UIApplication.shared.endEditing()
-                    }
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(BentoColors.groceryMint)
                 }
             }
         }

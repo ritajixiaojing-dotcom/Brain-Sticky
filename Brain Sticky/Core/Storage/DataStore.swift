@@ -266,12 +266,19 @@ public final class DataStore: ObservableObject {
         }
     }
     
-    public func toggleEntryInModule(moduleId: String, entryId: UUID) {
+    public func incrementEntryCountInModule(moduleId: String, entryId: UUID) {
         if let mIdx = customModules.firstIndex(where: { $0.id == moduleId }),
            let eIdx = customModules[mIdx].entries.firstIndex(where: { $0.id == entryId }) {
-            customModules[mIdx].entries[eIdx].isCompleted.toggle()
-            HapticManager.shared.selection()
+            customModules[mIdx].entries[eIdx].count += 1
+            customModules[mIdx].entries[eIdx].isCompleted = true
+            customModules[mIdx].entries[eIdx].lastCheckedInAt = Date()
+            saveCustomModules()
+            HapticManager.shared.notification(.success)
         }
+    }
+    
+    public func toggleEntryInModule(moduleId: String, entryId: UUID) {
+        incrementEntryCountInModule(moduleId: moduleId, entryId: entryId)
     }
     
     public func deleteEntryFromModule(moduleId: String, entryId: UUID) {
@@ -285,6 +292,7 @@ public final class DataStore: ObservableObject {
         if let mIdx = customModules.firstIndex(where: { $0.id == moduleId }) {
             for i in 0..<customModules[mIdx].entries.count {
                 customModules[mIdx].entries[i].isCompleted = false
+                customModules[mIdx].entries[i].count = 0
             }
             HapticManager.shared.notification(.warning)
         }
@@ -401,12 +409,6 @@ public final class DataStore: ObservableObject {
         
         // 严格清除自定义习惯列表中任何与内置常用图标重复的内容，避免重复出现
         userCustomHabitPresets.removeAll { DataStore.builtinHabitNames.contains($0.name) }
-        
-        // 预置钢琴等优质自定义习惯（如果尚未存在）
-        if !userCustomHabitPresets.contains(where: { $0.name == "钢琴" }) {
-            userCustomHabitPresets.insert(CustomPresetItem(icon: "🎹", name: "钢琴", label: "钢琴", defaultDetail: "每日练习"), at: 0)
-        }
-        saveCustomPresets()
         
         // 彻底清空历史默认假数据，确保默认库存为 0
         if !UserDefaults.standard.bool(forKey: "has_cleared_frequent_defaults_v2") {

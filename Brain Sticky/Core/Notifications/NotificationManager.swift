@@ -7,6 +7,8 @@
 
 import Foundation
 import UserNotifications
+import AudioToolbox
+import UIKit
 
 public final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     public static let shared = NotificationManager()
@@ -66,7 +68,7 @@ public final class NotificationManager: NSObject, UNUserNotificationCenterDelega
         guard item.daysRemaining > 0 && item.coolOffDaysTotal < 9999 else { return }
         
         let content = UNMutableNotificationContent()
-        content.title = "🎁 欲望冷静期已到期"
+        content.title = "🎁 剁手提醒"
         content.body = "「\(item.title)」的冷静期已结束，来看看现在是否依然想买？"
         content.sound = .default
         content.userInfo = ["itemId": item.id.uuidString, "type": "wishlist"]
@@ -82,12 +84,14 @@ public final class NotificationManager: NSObject, UNUserNotificationCenterDelega
         UNUserNotificationCenter.current().add(request)
     }
     
-    // MARK: - UNUserNotificationCenterDelegate (确保在前台与后台均能弹出横幅与声音)
+    // MARK: - UNUserNotificationCenterDelegate (确保在前台与后台均能弹出横幅与声音、触觉震动)
     public func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+        HapticManager.shared.notification(.warning)
         completionHandler([.banner, .sound, .badge, .list])
     }
     
@@ -96,6 +100,7 @@ public final class NotificationManager: NSObject, UNUserNotificationCenterDelega
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
         completionHandler()
     }
 }
