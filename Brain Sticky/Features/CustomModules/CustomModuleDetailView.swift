@@ -86,23 +86,12 @@ public struct CustomModuleDetailView: View {
     public var body: some View {
         ZStack {
             CuteAmbientBackground()
-            
-            // 🌟 顶部与全屏显式铺满卡片所选主题色氛围光晕
-            VStack {
-                Circle()
-                    .fill(themeColor.opacity(0.35))
-                    .frame(width: 360, height: 360)
-                    .blur(radius: 70)
-                    .offset(y: -120)
-                Spacer()
-            }
-            .ignoresSafeArea()
+            backgroundGlowView
             
             VStack(spacing: 0) {
                 headerCard
                 presetsBar
                 inputBar
-                
                 habitListView
             }
         }
@@ -171,6 +160,19 @@ public struct CustomModuleDetailView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
+    }
+    
+    @ViewBuilder
+    private var backgroundGlowView: some View {
+        VStack {
+            Circle()
+                .fill(themeColor.opacity(0.35))
+                .frame(width: 360, height: 360)
+                .blur(radius: 70)
+                .offset(y: -120)
+            Spacer()
+        }
+        .ignoresSafeArea()
     }
     
     @ToolbarContentBuilder
