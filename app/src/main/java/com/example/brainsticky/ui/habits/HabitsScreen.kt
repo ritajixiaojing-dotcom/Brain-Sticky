@@ -115,18 +115,17 @@ fun HabitsScreen(
                                 entry = entry,
                                 lang = lang,
                                 onIncrement = {
-                                    if (entry.count >= 2 && entry.isCheckedInWithin24Hours) {
+                                    if ((entry.isCompleted || entry.count >= 1) && entry.isCheckedInWithin24Hours) {
                                         android.widget.Toast.makeText(
                                             context,
-                                            if (lang == AppLanguage.CHINESE) "「${entry.icon} ${entry.title}」今日已打卡（已满2次）\n${entry.nextCheckInCountdown(lang)}" else "Check-in completed for today (2/2)!\n${entry.nextCheckInCountdown(lang)}",
+                                            if (lang == AppLanguage.CHINESE) "「${entry.icon} ${entry.title}」今日已打卡，不可重复打卡 ✨" else "\"${entry.title}\" has already been checked in today!",
                                             android.widget.Toast.LENGTH_SHORT
                                         ).show()
                                     } else {
                                         dataStore.incrementHabitEntry(habitModule.id, entry.id)
-                                        val newCount = entry.count + 1
                                         android.widget.Toast.makeText(
                                             context,
-                                            if (lang == AppLanguage.CHINESE) "${entry.icon}【${entry.title}】今日第 $newCount 次打卡！✨" else "✓ Checked in for ${entry.title} (#$newCount)!",
+                                            if (lang == AppLanguage.CHINESE) "${entry.icon}【${entry.title}】今日已打卡！✨" else "✓ Checked in for ${entry.title}!",
                                             android.widget.Toast.LENGTH_SHORT
                                         ).show()
                                     }
@@ -295,23 +294,16 @@ fun HabitItemCard(
                         }
                     }
                 }
-
-                if (entry.count >= 2) {
-                    Text(
-                        text = "⏳ " + entry.nextCheckInCountdown(lang),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = BentoColors.GroceryMint
-                    )
-                }
             }
+
+            val isCheckedInToday = (entry.isCompleted || entry.count >= 1) && entry.isCheckedInWithin24Hours
 
             // Big Check-in +1 Button
             Button(
                 onClick = onIncrement,
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (entry.count > 0) BentoColors.GroceryMint else BentoColors.OmniElectric
+                    containerColor = if (isCheckedInToday) BentoColors.GroceryMint else BentoColors.OmniElectric
                 ),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
             ) {
@@ -319,18 +311,10 @@ fun HabitItemCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    if (entry.count >= 2) {
+                    if (isCheckedInToday) {
                         Icon(Icons.Default.Check, contentDescription = "Done", tint = Color.White, modifier = Modifier.size(15.dp))
                         Text(
-                            text = if (lang == AppLanguage.CHINESE) "今日已打卡 (${entry.count}次)" else "Done Today (${entry.count})",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 12.sp,
-                            color = Color.White
-                        )
-                    } else if (entry.count == 1) {
-                        Icon(Icons.Default.Check, contentDescription = "Done", tint = Color.White, modifier = Modifier.size(15.dp))
-                        Text(
-                            text = if (lang == AppLanguage.CHINESE) "今日 1 次 +1" else "1 today +1",
+                            text = if (lang == AppLanguage.CHINESE) "今日已打卡" else "Done Today",
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 12.sp,
                             color = Color.White
