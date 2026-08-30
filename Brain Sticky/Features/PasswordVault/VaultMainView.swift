@@ -19,48 +19,90 @@ public struct VaultMainView: View {
     
     public var body: some View {
         VStack(spacing: 0) {
-            // MARK: - 居中显眼快速新建密码按钮
-            Button(action: {
-                isShowingAddSheet = true
-                HapticManager.shared.impact(.medium)
-            }) {
-                HStack(spacing: 10) {
-                    Text("🔐")
-                        .font(.system(size: 16))
-                    Text(langManager.currentLanguage == .chinese ? "✨ 新建钥匙与密码账号..." : "✨ Add new secret or password...")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundColor(.primary.opacity(0.85))
-                    Spacer()
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(BentoColors.vaultViolet)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .background(Color.white)
-                .contentShape(Rectangle())
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .shadow(color: BentoColors.vaultViolet.opacity(0.14), radius: 8, x: 0, y: 3)
-            }
-            .buttonStyle(BouncyButtonStyle())
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 6)
-            
-            List {
-                if store.vaultItems.isEmpty {
-                    VStack(spacing: 8) {
+            if !store.vaultItems.isEmpty {
+                // MARK: - 显眼快速新建密码栏 (仅在有记录时显示在顶部)
+                Button(action: {
+                    isShowingAddSheet = true
+                    HapticManager.shared.impact(.medium)
+                }) {
+                    HStack(spacing: 10) {
                         Text("🔐")
-                            .font(.system(size: 32))
-                            .padding(.top, 40)
-                        Text(langManager.currentLanguage == .chinese ? "暂无密码记录" : "No Passwords Stored")
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 16))
+                        Text(langManager.currentLanguage == .chinese ? "✨ 新建钥匙与密码账号..." : "✨ Add new secret or password...")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(.primary.opacity(0.85))
+                        Spacer()
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(BentoColors.vaultViolet)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(Color.white)
+                    .contentShape(Rectangle())
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .shadow(color: BentoColors.vaultViolet.opacity(0.14), radius: 8, x: 0, y: 3)
+                }
+                .buttonStyle(BouncyButtonStyle())
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 6)
+            }
+            
+            if store.vaultItems.isEmpty {
+                // MARK: - 屏幕中央大加号添加按钮 (Large Center Plus Button)
+                Spacer()
+                
+                Button(action: {
+                    isShowingAddSheet = true
+                    HapticManager.shared.impact(.medium)
+                }) {
+                    VStack(spacing: 16) {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [BentoColors.vaultViolet, BentoColors.omniElectric],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 80, height: 80)
+                                .shadow(color: BentoColors.vaultViolet.opacity(0.35), radius: 14, x: 0, y: 7)
+                            
+                            Image(systemName: "plus")
+                                .font(.system(size: 38, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        
+                        VStack(spacing: 6) {
+                            Text(langManager.currentLanguage == .chinese ? "新建钥匙与密码" : "Add New Password")
+                                .font(.system(size: 17, weight: .bold, design: .rounded))
+                                .foregroundColor(.primary)
+                            Text(langManager.currentLanguage == .chinese ? "轻点中央大加号，安全记录您的账号与密码 ✨" : "Tap plus to securely store your passwords ✨")
+                                .font(.system(size: 13, design: .rounded))
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                        }
+                    }
+                    .padding(.vertical, 32)
+                    .padding(.horizontal, 24)
                     .frame(maxWidth: .infinity)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                } else {
+                    .background(Color.white.opacity(0.92))
+                    .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            .stroke(BentoColors.vaultViolet.opacity(0.25), lineWidth: 1.5)
+                    )
+                    .shadow(color: BentoColors.vaultViolet.opacity(0.12), radius: 16, x: 0, y: 6)
+                }
+                .buttonStyle(BouncyButtonStyle())
+                .padding(.horizontal, 28)
+                
+                Spacer()
+            } else {
+                List {
                     ForEach(store.vaultItems) { item in
                         VaultItemCardRow(
                             item: item,
@@ -117,24 +159,16 @@ public struct VaultMainView: View {
                         }
                     }
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .scrollDismissesKeyboard(.interactively)
+                .dismissKeyboardOnTap()
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .scrollDismissesKeyboard(.interactively)
-            .dismissKeyboardOnTap()
         }
         .dismissKeyboardOnTap()
         .background(BentoColors.bgPrimary.ignoresSafeArea())
         .navigationTitle(langManager.localized(.vaultTitle))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: { isShowingAddSheet = true }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 15, weight: .bold))
-                }
-            }
-        }
         .alert(
             langManager.currentLanguage == .chinese ? "确认删除此密码记录？" : "Delete Password?",
             isPresented: Binding(
