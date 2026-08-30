@@ -240,6 +240,12 @@ public struct CustomModuleDetailView: View {
         .frame(maxWidth: .infinity)
     }
     
+    private func progressWidth(totalWidth: CGFloat, completed: Int, total: Int) -> CGFloat {
+        guard total > 0 else { return 0 }
+        let ratio = CGFloat(completed) / CGFloat(total)
+        return totalWidth * max(0, min(1, ratio))
+    }
+    
     @ViewBuilder
     private var headerCard: some View {
         VStack(spacing: 10) {
@@ -311,7 +317,7 @@ public struct CustomModuleDetailView: View {
                                     endPoint: .trailing
                                 )
                             )
-                            .frame(width: geo.size.width * CGFloat(Double(completedCount) / Double(total)), height: 6)
+                            .frame(width: progressWidth(totalWidth: geo.size.width, completed: completedCount, total: total), height: 6)
                     }
                 }
                 .frame(height: 6)
