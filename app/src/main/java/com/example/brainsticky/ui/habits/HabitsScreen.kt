@@ -115,13 +115,21 @@ fun HabitsScreen(
                                 entry = entry,
                                 lang = lang,
                                 onIncrement = {
-                                    dataStore.incrementHabitEntry(habitModule.id, entry.id)
-                                    val newCount = entry.count + 1
-                                    android.widget.Toast.makeText(
-                                        context,
-                                        if (lang == AppLanguage.CHINESE) "${entry.icon}【${entry.title}】今日第 $newCount 次打卡！✨" else "✓ Checked in for ${entry.title} (#$newCount)!",
-                                        android.widget.Toast.LENGTH_SHORT
-                                    ).show()
+                                    if (entry.count >= 2 && entry.isCheckedInWithin24Hours) {
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            if (lang == AppLanguage.CHINESE) "「${entry.icon} ${entry.title}」今日已打卡（已满2次）\n${entry.nextCheckInCountdown(lang)}" else "Check-in completed for today (2/2)!\n${entry.nextCheckInCountdown(lang)}",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        dataStore.incrementHabitEntry(habitModule.id, entry.id)
+                                        val newCount = entry.count + 1
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            if (lang == AppLanguage.CHINESE) "${entry.icon}【${entry.title}】今日第 $newCount 次打卡！✨" else "✓ Checked in for ${entry.title} (#$newCount)!",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
                                 },
                                 onDelete = { habitToDelete = entry }
                             )
@@ -138,39 +146,29 @@ fun HabitsScreen(
             onDismissRequest = { isShowingClearConfirmDialog = false },
             title = {
                 Text(
-                    text = if (lang == AppLanguage.CHINESE) "清除打卡记录？" else "Clear Habit Records?",
+                    text = if (lang == AppLanguage.CHINESE) "清空打卡列表？" else "Clear All Habits?",
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
-                    text = if (lang == AppLanguage.CHINESE) "您可以选择重置今日所有打卡计数，或者清空打卡列表中的全部项目。" else "Reset today's check-in counts or clear all items."
+                    text = if (lang == AppLanguage.CHINESE) "将删除打卡列表中的所有项目，此操作不可撤销。" else "This will delete all items in the habit list."
                 )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        dataStore.resetAllHabitCounts(habitModule.id)
+                        dataStore.clearAllHabitEntries(habitModule.id)
                         isShowingClearConfirmDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = BentoColors.OmniElectric)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text(if (lang == AppLanguage.CHINESE) "重置今日打卡 (清零)" else "Reset Today")
+                    Text(if (lang == AppLanguage.CHINESE) "清空全部" else "Clear All")
                 }
             },
             dismissButton = {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    TextButton(
-                        onClick = {
-                            dataStore.clearAllHabitEntries(habitModule.id)
-                            isShowingClearConfirmDialog = false
-                        }
-                    ) {
-                        Text(if (lang == AppLanguage.CHINESE) "清空全部项目" else "Clear All", color = MaterialTheme.colorScheme.error)
-                    }
-                    TextButton(onClick = { isShowingClearConfirmDialog = false }) {
-                        Text(if (lang == AppLanguage.CHINESE) "取消" else "Cancel")
-                    }
+                TextButton(onClick = { isShowingClearConfirmDialog = false }) {
+                    Text(if (lang == AppLanguage.CHINESE) "取消" else "Cancel")
                 }
             }
         )

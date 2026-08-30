@@ -174,6 +174,12 @@ data class CustomEntryItem(
     val historyDates: List<String> = emptyList(),
     val lastCheckedInTimestamp: Long = 0L
 ) {
+    val isCheckedInWithin24Hours: Boolean
+        get() {
+            if (lastCheckedInTimestamp <= 0L) return count > 0
+            return (System.currentTimeMillis() - lastCheckedInTimestamp) < 24L * 3600L * 1000L
+        }
+
     fun nextCheckInCountdown(lang: AppLanguage): String {
         if (lastCheckedInTimestamp <= 0L) {
             return if (lang == AppLanguage.CHINESE) "24小时后可再次打卡" else "Next check-in in 24h"

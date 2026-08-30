@@ -268,7 +268,11 @@ class DataStore private constructor(context: Context) {
             if (mod.id == moduleId) {
                 val updatedEntries = mod.entries.map { entry ->
                     if (entry.id == entryId) {
-                        val isFirstToday = entry.lastCompletedDate != todayStr
+                        val isFirstToday = entry.lastCompletedDate != todayStr || (entry.lastCheckedInTimestamp > 0 && System.currentTimeMillis() - entry.lastCheckedInTimestamp >= 24 * 3600 * 1000)
+                        if (!isFirstToday && entry.count >= 2) {
+                            // 今日/24小时内已满2次，禁止再次增加
+                            return@map entry
+                        }
                         val newCount = if (isFirstToday) 1 else entry.count + 1
                         val newStreak = when (entry.lastCompletedDate) {
                             yesterdayStr -> entry.streakDays + 1
