@@ -103,18 +103,7 @@ public struct CustomModuleDetailView: View {
                 presetsBar
                 inputBar
                 
-                // MARK: - 打卡条目主单列列表 (Neat Single-Column Habit List)
-                if module.entries.isEmpty {
-                    emptyStateView
-                } else {
-                    List {
-                        ForEach(module.entries) { item in
-                            habitRow(for: item)
-                        }
-                    }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
-                }
+                habitListView
             }
         }
         .navigationTitle(displayedModuleTitle)
@@ -194,6 +183,21 @@ public struct CustomModuleDetailView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
+    }
+    
+    @ViewBuilder
+    private var habitListView: some View {
+        if module.entries.isEmpty {
+            emptyStateView
+        } else {
+            List {
+                ForEach(module.entries) { item in
+                    habitRow(for: item)
+                }
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+        }
     }
     
     @ViewBuilder
