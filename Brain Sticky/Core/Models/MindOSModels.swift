@@ -413,12 +413,17 @@ public struct CustomEntryItem: Identifiable, Codable, Hashable {
     }
     
     /// 检查是否在 24 小时内已打卡
+    public var isWithin24Hours: Bool {
+        guard let last = lastCheckedInAt else { return false }
+        return Date().timeIntervalSince(last) < 24 * 3600
+    }
+    
     public var isCheckedInWithin24Hours: Bool {
         guard let last = lastCheckedInAt else { return count > 0 }
         return Date().timeIntervalSince(last) < 24 * 3600
     }
     
-    /// 距离 24 小时后的下一次打卡剩余时间字符串 (如 "23小时50分后 +1")
+    /// 距离 24 小时后的下一次打卡剩余时间字符串 (如 "23小时50分后可再次打卡")
     public func nextCheckInCountdown(isChinese: Bool = true) -> String {
         guard let last = lastCheckedInAt else {
             return isChinese ? "24小时后可再次打卡" : "Next check-in in 24h"
@@ -426,7 +431,7 @@ public struct CustomEntryItem: Identifiable, Codable, Hashable {
         let elapsed = Date().timeIntervalSince(last)
         let total24h: TimeInterval = 24 * 3600
         if elapsed >= total24h {
-            return isChinese ? "已满24小时，可+1打卡 ✨" : "24h reached, ready for +1 ✨"
+            return isChinese ? "已满24小时，可再次打卡 ✨" : "24h reached, ready for next check-in ✨"
         }
         let remaining = total24h - elapsed
         let hours = Int(remaining) / 3600
@@ -439,9 +444,9 @@ public struct CustomEntryItem: Identifiable, Codable, Hashable {
             }
         } else {
             if hours > 0 {
-                return "Next +1 available in \(hours)h \(minutes)m"
+                return "Next check-in in \(hours)h \(minutes)m"
             } else {
-                return "Next +1 available in \(max(1, minutes))m"
+                return "Next check-in in \(max(1, minutes))m"
             }
         }
     }
@@ -478,6 +483,19 @@ public struct CustomEntryItem: Identifiable, Codable, Hashable {
         let start = calendar.startOfDay(for: Date())
         let end = calendar.startOfDay(for: targetDate)
         return calendar.dateComponents([.day], from: start, to: end).day
+    }
+}
+
+public struct AlreadyCheckedInInfo: Identifiable {
+    public let id = UUID()
+    public let title: String
+    public let icon: String
+    public let countdown: String
+    
+    public init(title: String, icon: String, countdown: String) {
+        self.title = title
+        self.icon = icon
+        self.countdown = countdown
     }
 }
 

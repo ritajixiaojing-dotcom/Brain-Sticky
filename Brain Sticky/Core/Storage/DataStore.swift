@@ -266,15 +266,34 @@ public final class DataStore: ObservableObject {
         }
     }
     
-    public func incrementEntryCountInModule(moduleId: String, entryId: UUID) {
+    @discardableResult
+    public func incrementEntryCountInModule(moduleId: String, entryId: UUID) -> (success: Bool, message: String?) {
         if let mIdx = customModules.firstIndex(where: { $0.id == moduleId }),
            let eIdx = customModules[mIdx].entries.firstIndex(where: { $0.id == entryId }) {
-            customModules[mIdx].entries[eIdx].count += 1
-            customModules[mIdx].entries[eIdx].isCompleted = true
-            customModules[mIdx].entries[eIdx].lastCheckedInAt = Date()
+            var entry = customModules[mIdx].entries[eIdx]
+            
+            // 如果距离上次打卡已超过 24 小时，自动重置打卡状态，开启新一轮打卡周期
+            if let last = entry.lastCheckedInAt, Date().timeIntervalSince(last) >= 24 * 3600 {
+                entry.count = 0
+                entry.isCompleted = false
+            }
+            
+            // 如果今日已打卡（已完成打卡且在 24 小时内），则不可再次打卡，返回失败并提示
+            if (entry.isCompleted || entry.count >= 1) && entry.isWithin24Hours {
+                let countdown = entry.nextCheckInCountdown(isChinese: AppLanguageManager.shared.currentLanguage == .chinese)
+                HapticManager.shared.notification(.warning)
+                return (false, countdown)
+            }
+            
+            entry.count = 1
+            entry.isCompleted = true
+            entry.lastCheckedInAt = Date()
+            customModules[mIdx].entries[eIdx] = entry
             saveCustomModules()
             HapticManager.shared.notification(.success)
+            return (true, nil)
         }
+        return (false, nil)
     }
     
     public func toggleEntryInModule(moduleId: String, entryId: UUID) {

@@ -52,9 +52,9 @@ public struct CustomModuleDetailView: View {
     
     @State private var isShowingEditModuleSheet = false
     @State private var isShowingCreateCustomHabitSheet = false
-    @State private var isShowingResetAlert = false
     @State private var isShowingClearAllItemsAlert = false
     @State private var entryToDelete: CustomEntryItem? = nil
+    @State private var alreadyCheckedInAlertInfo: AlreadyCheckedInInfo? = nil
     @State private var newEntryTitle = ""
     @State private var newEntryIcon = "🎯"
     @State private var newEntryDetail = ""
@@ -105,38 +105,11 @@ public struct CustomModuleDetailView: View {
                 
                 // MARK: - 打卡条目主单列列表 (Neat Single-Column Habit List)
                 if module.entries.isEmpty {
-                    VStack(spacing: 10) {
-                        Spacer()
-                        Text("🎯 🏃 💧 📖")
-                            .font(.system(size: 34))
-                        Text(langManager.currentLanguage == .chinese ? "打卡清单已清空 ✨" : "Habit list is empty ✨")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundColor(.primary)
-                        Text(langManager.currentLanguage == .chinese ? "在上方快捷标签中轻点想要打卡的项目，或者点击「➕ 自定义目标」即可放进列表！" : "Tap tags above or add custom habits to start!")
-                            .font(.system(size: 13, design: .rounded))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity)
+                    emptyStateView
                 } else {
                     List {
                         ForEach(module.entries) { item in
-                            HabitItemRow(
-                                moduleId: module.id,
-                                item: item,
-                                themeColor: themeColor,
-                                onEdit: {
-                                    editingEntry = item
-                                },
-                                onDeleteRequest: {
-                                    entryToDelete = item
-                                }
-                            )
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            habitRow(for: item)
                         }
                     }
                     .listStyle(.plain)
@@ -150,11 +123,6 @@ public struct CustomModuleDetailView: View {
             if !module.entries.isEmpty {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
-                        if module.entries.contains(where: { $0.isCompleted }) {
-                            Button(action: { isShowingResetAlert = true }) {
-                                Label(langManager.currentLanguage == .chinese ? "清除今日打卡状态" : "Reset Today's Habits", systemImage: "arrow.counterclockwise")
-                            }
-                        }
                         Button(role: .destructive, action: { isShowingClearAllItemsAlert = true }) {
                             Label(langManager.currentLanguage == .chinese ? "清空所有打卡项目" : "Clear All Habits", systemImage: "trash")
                         }
@@ -165,6 +133,22 @@ public struct CustomModuleDetailView: View {
                     }
                 }
             }
+        }
+        .alert(
+            langManager.currentLanguage == .chinese ? "今日已打卡" : "Already Checked In Today",
+            isPresented: Binding(
+                get: { alreadyCheckedInAlertInfo != nil },
+                set: { if !$0 { alreadyCheckedInAlertInfo = nil } }
+            ),
+            presenting: alreadyCheckedInAlertInfo
+        ) { _ in
+            Button(langManager.localized(.ok), role: .cancel) {
+                alreadyCheckedInAlertInfo = nil
+            }
+        } message: { info in
+            Text(langManager.currentLanguage == .chinese
+                 ? "「\(info.icon) \(info.title)」今日已打卡，不可重复打卡 ✨\n\(info.countdown)"
+                 : "\"\(info.title)\" has already been checked in today!\n\(info.countdown)")
         }
         .alert(
             langManager.currentLanguage == .chinese ? "确认删除此打卡项？" : "Delete Habit Item?",
@@ -185,19 +169,6 @@ public struct CustomModuleDetailView: View {
             }
         } message: { item in
             Text(langManager.currentLanguage == .chinese ? "确定要删除「\(item.icon) \(item.title)」吗？此操作无法撤销。" : "Are you sure you want to delete \"\(item.title)\"?")
-        }
-        .alert(
-            langManager.currentLanguage == .chinese ? "确认清除今日打卡？" : "Reset today's habits?",
-            isPresented: $isShowingResetAlert
-        ) {
-            Button(langManager.currentLanguage == .chinese ? "一键清除所有项目" : "Clear All", role: .destructive) {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
-                    store.clearAllEntriesInModule(moduleId: module.id)
-                }
-            }
-            Button(langManager.localized(.cancel), role: .cancel) {}
-        } message: {
-            Text(langManager.currentLanguage == .chinese ? "将清除并清空下方列表中的所有项目，方便您重新点选。" : "This will reset and clear all habit items in the list.")
         }
         .alert(
             langManager.currentLanguage == .chinese ? "确认清空打卡列表中的所有项目？" : "Clear all items in habit list?",
@@ -223,6 +194,46 @@ public struct CustomModuleDetailView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
+    }
+    
+    @ViewBuilder
+    private func habitRow(for item: CustomEntryItem) -> some View {
+        HabitItemRow(
+            moduleId: module.id,
+            item: item,
+            themeColor: themeColor,
+            onEdit: {
+                editingEntry = item
+            },
+            onDeleteRequest: {
+                entryToDelete = item
+            },
+            onAlreadyCheckedIn: { title, icon, countdown in
+                alreadyCheckedInAlertInfo = AlreadyCheckedInInfo(title: title, icon: icon, countdown: countdown)
+            }
+        )
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+    }
+    
+    @ViewBuilder
+    private var emptyStateView: some View {
+        VStack(spacing: 10) {
+            Spacer()
+            Text("🎯 🏃 💧 📖")
+                .font(.system(size: 34))
+            Text(langManager.currentLanguage == .chinese ? "打卡清单已清空 ✨" : "Habit list is empty ✨")
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(.primary)
+            Text(langManager.currentLanguage == .chinese ? "在上方快捷标签中轻点想要打卡的项目，或者点击「➕ 自定义目标」即可放进列表！" : "Tap tags above or add custom habits to start!")
+                .font(.system(size: 13, design: .rounded))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
     }
     
     @ViewBuilder
@@ -274,27 +285,6 @@ public struct CustomModuleDetailView: View {
                     }
                     
                     Spacer()
-                    
-                    Button(action: {
-                        isShowingResetAlert = true
-                    }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 11, weight: .bold))
-                            Text(langManager.currentLanguage == .chinese ? "清除今日打卡" : "Reset Today")
-                                .font(.system(size: 11, weight: .heavy, design: .rounded))
-                        }
-                        .foregroundColor(BentoColors.urgentCoral)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(BentoColors.urgentCoral.opacity(0.12))
-                        .clipShape(Capsule())
-                        .overlay(
-                            Capsule().stroke(BentoColors.urgentCoral.opacity(0.35), lineWidth: 1)
-                        )
-                        .shadow(color: BentoColors.urgentCoral.opacity(0.1), radius: 3, y: 1)
-                    }
-                    .bouncyTap(scale: 0.92)
                 } else {
                     Text(langManager.currentLanguage == .chinese ? "点击下方快捷标签或自定义按钮，将想打卡的项目放进列表 ✨" : "Tap tags below or add custom habits to start ✨")
                         .font(.system(size: 12, weight: .medium, design: .rounded))
@@ -724,15 +714,20 @@ struct CreateCustomHabitSheet: View {
     }
 }
 
-// MARK: - Habit Item Row (显式支持所选卡片主题色与【今日已完成 / 点击打卡】)
+// MARK: - Habit Item Row (支持【今日已打卡】锁定与点击弹窗提示)
 struct HabitItemRow: View {
     let moduleId: String
     let item: CustomEntryItem
     let themeColor: Color
     var onEdit: () -> Void
     var onDeleteRequest: () -> Void
+    var onAlreadyCheckedIn: (String, String, String) -> Void
     @ObservedObject var store = DataStore.shared
     @ObservedObject var langManager = AppLanguageManager.shared
+    
+    private var isCheckedInToday: Bool {
+        (item.isCompleted || item.count >= 1) && item.isWithin24Hours
+    }
     
     var body: some View {
         HStack(spacing: 12) {
@@ -740,7 +735,7 @@ struct HabitItemRow: View {
             Text(item.icon)
                 .font(.system(size: 22))
                 .frame(width: 42, height: 42)
-                .background(item.isCompleted ? BentoColors.groceryMint.opacity(0.18) : themeColor.opacity(0.35))
+                .background(isCheckedInToday ? BentoColors.groceryMint.opacity(0.18) : themeColor.opacity(0.35))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .onTapGesture { onEdit() }
             
@@ -748,8 +743,8 @@ struct HabitItemRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.title)
                     .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .strikethrough(item.isCompleted, color: .secondary)
-                    .foregroundColor(item.isCompleted ? .secondary : .primary)
+                    .strikethrough(isCheckedInToday, color: .secondary)
+                    .foregroundColor(isCheckedInToday ? .secondary : .primary)
                 
                 if !item.detail.isEmpty {
                     Text(item.detail)
@@ -757,7 +752,7 @@ struct HabitItemRow: View {
                         .foregroundColor(.secondary)
                 }
                 
-                if item.count >= 2 {
+                if isCheckedInToday {
                     HStack(spacing: 3) {
                         Image(systemName: "clock.badge.checkmark")
                             .font(.system(size: 9.5, weight: .bold))
@@ -772,13 +767,24 @@ struct HabitItemRow: View {
             
             Spacer()
             
-            // 右侧：打卡状态与累计计数
+            // 右侧：打卡按钮 (点击打卡显示今日已打卡，就不能再点了，点了就显示弹出窗口)
             Button(action: {
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.65)) {
-                    store.incrementEntryCountInModule(moduleId: moduleId, entryId: item.id)
+                if isCheckedInToday {
+                    onAlreadyCheckedIn(
+                        item.title,
+                        item.icon,
+                        item.nextCheckInCountdown(isChinese: langManager.currentLanguage == .chinese)
+                    )
+                } else {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.65)) {
+                        let result = store.incrementEntryCountInModule(moduleId: moduleId, entryId: item.id)
+                        if !result.success, let msg = result.message {
+                            onAlreadyCheckedIn(item.title, item.icon, msg)
+                        }
+                    }
                 }
             }) {
-                if item.count >= 2 {
+                if isCheckedInToday {
                     HStack(spacing: 5) {
                         Image(systemName: "checkmark.seal.fill")
                             .font(.system(size: 13, weight: .bold))
@@ -786,43 +792,13 @@ struct HabitItemRow: View {
                         Text(langManager.currentLanguage == .chinese ? "今日已打卡" : "Done Today")
                             .font(.system(size: 12, weight: .heavy, design: .rounded))
                             .foregroundColor(BentoColors.groceryMint)
-                        Text("\(item.count)次")
-                            .font(.system(size: 10, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(BentoColors.groceryMint)
-                            .clipShape(Capsule())
                     }
-                    .padding(.horizontal, 10)
+                    .padding(.horizontal, 11)
                     .padding(.vertical, 7)
                     .background(BentoColors.groceryMint.opacity(0.15))
                     .clipShape(Capsule())
                     .overlay(
                         Capsule().stroke(BentoColors.groceryMint.opacity(0.35), lineWidth: 1.2)
-                    )
-                } else if item.count == 1 {
-                    HStack(spacing: 5) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(BentoColors.groceryMint)
-                        Text(langManager.currentLanguage == .chinese ? "今日 1 次" : "1 today")
-                            .font(.system(size: 12, weight: .heavy, design: .rounded))
-                            .foregroundColor(BentoColors.groceryMint)
-                        Text("+1")
-                            .font(.system(size: 10, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(BentoColors.groceryMint)
-                            .clipShape(Capsule())
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background(BentoColors.groceryMint.opacity(0.15))
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule().stroke(BentoColors.groceryMint.opacity(0.3), lineWidth: 1)
                     )
                 } else {
                     HStack(spacing: 4) {
@@ -833,7 +809,7 @@ struct HabitItemRow: View {
                             .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
                     }
-                    .padding(.horizontal, 10)
+                    .padding(.horizontal, 11)
                     .padding(.vertical, 7)
                     .background(themeColor.opacity(0.28))
                     .clipShape(Capsule())
@@ -851,7 +827,7 @@ struct HabitItemRow: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(item.isCompleted ? Color.white.opacity(0.85) : themeColor.opacity(0.3), lineWidth: 1.0)
+                .stroke(isCheckedInToday ? Color.white.opacity(0.85) : themeColor.opacity(0.3), lineWidth: 1.0)
         )
         .shadow(color: Color(red: 145/255, green: 135/255, blue: 165/255).opacity(0.08), radius: 6, x: 0, y: 2)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
