@@ -84,6 +84,35 @@ public struct CustomModuleDetailView: View {
     }
     
     public var body: some View {
+        mainContentView
+            .navigationTitle(displayedModuleTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                trailingToolbarItems
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .dismissKeyboardOnTap()
+            .sheet(isPresented: $isShowingEditModuleSheet) {
+                EditCustomModuleSheet(module: module)
+            }
+            .sheet(isPresented: $isShowingCreateCustomHabitSheet) {
+                CreateCustomHabitSheet(moduleId: module.id)
+            }
+            .sheet(item: $editingEntry) { entry in
+                EditCustomEntrySheet(moduleId: module.id, entry: entry)
+            }
+            .modifier(CustomModuleAlertsModifier(
+                alreadyCheckedInAlertInfo: $alreadyCheckedInAlertInfo,
+                entryToDelete: $entryToDelete,
+                isShowingClearAllItemsAlert: $isShowingClearAllItemsAlert,
+                moduleId: module.id,
+                isChinese: langManager.currentLanguage == .chinese,
+                store: store
+            ))
+    }
+    
+    @ViewBuilder
+    private var mainContentView: some View {
         ZStack {
             CuteAmbientBackground()
             backgroundGlowView
@@ -95,71 +124,6 @@ public struct CustomModuleDetailView: View {
                 habitListView
             }
         }
-        .navigationTitle(displayedModuleTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            trailingToolbarItems
-        }
-        .alert(
-            langManager.currentLanguage == .chinese ? "今日已打卡" : "Already Checked In Today",
-            isPresented: Binding(
-                get: { alreadyCheckedInAlertInfo != nil },
-                set: { if !$0 { alreadyCheckedInAlertInfo = nil } }
-            ),
-            presenting: alreadyCheckedInAlertInfo
-        ) { _ in
-            Button(langManager.localized(.ok), role: .cancel) {
-                alreadyCheckedInAlertInfo = nil
-            }
-        } message: { info in
-            Text(langManager.currentLanguage == .chinese
-                 ? "「\(info.icon) \(info.title)」今日已打卡，不可重复打卡 ✨\n\(info.countdown)"
-                 : "\"\(info.title)\" has already been checked in today!\n\(info.countdown)")
-        }
-        .alert(
-            langManager.currentLanguage == .chinese ? "确认删除此打卡项？" : "Delete Habit Item?",
-            isPresented: Binding(
-                get: { entryToDelete != nil },
-                set: { if !$0 { entryToDelete = nil } }
-            ),
-            presenting: entryToDelete
-        ) { item in
-            Button(langManager.currentLanguage == .chinese ? "删除" : "Delete", role: .destructive) {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
-                    store.deleteEntryFromModule(moduleId: module.id, entryId: item.id)
-                }
-                entryToDelete = nil
-            }
-            Button(langManager.localized(.cancel), role: .cancel) {
-                entryToDelete = nil
-            }
-        } message: { item in
-            Text(langManager.currentLanguage == .chinese ? "确定要删除「\(item.icon) \(item.title)」吗？此操作无法撤销。" : "Are you sure you want to delete \"\(item.title)\"?")
-        }
-        .alert(
-            langManager.currentLanguage == .chinese ? "确认清空打卡列表中的所有项目？" : "Clear all items in habit list?",
-            isPresented: $isShowingClearAllItemsAlert
-        ) {
-            Button(langManager.currentLanguage == .chinese ? "清空全部" : "Clear All", role: .destructive) {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
-                    store.clearAllEntriesInModule(moduleId: module.id)
-                }
-            }
-            Button(langManager.localized(.cancel), role: .cancel) {}
-        } message: {
-            Text(langManager.currentLanguage == .chinese ? "此操作会删除当前列表中的全部项目，方便您重新从上方点选或自定义添加。" : "This will delete all items in the current habit list.")
-        }
-        .sheet(isPresented: $isShowingEditModuleSheet) {
-            EditCustomModuleSheet(module: module)
-        }
-        .sheet(isPresented: $isShowingCreateCustomHabitSheet) {
-            CreateCustomHabitSheet(moduleId: module.id)
-        }
-        .sheet(item: $editingEntry) { entry in
-            EditCustomEntrySheet(moduleId: module.id, entry: entry)
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .dismissKeyboardOnTap()
     }
     
     @ViewBuilder
@@ -1235,3 +1199,67 @@ public struct BentoCustomCardView: View {
         .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
     }
 }
+
+// MARK: - Custom Module Alerts Modifier
+struct CustomModuleAlertsModifier: ViewModifier {
+    @Binding var alreadyCheckedInAlertInfo: AlreadyCheckedInInfo?
+    @Binding var entryToDelete: CustomEntryItem?
+    @Binding var isShowingClearAllItemsAlert: Bool
+    let moduleId: String
+    let isChinese: Bool
+    @ObservedObject var store: DataStore
+
+    func body(content: Content) -> some View {
+        content
+            .alert(
+                isChinese ? "今日已打卡" : "Already Checked In Today",
+                isPresented: Binding(
+                    get: { alreadyCheckedInAlertInfo != nil },
+                    set: { if !$0 { alreadyCheckedInAlertInfo = nil } }
+                ),
+                presenting: alreadyCheckedInAlertInfo
+            ) { _ in
+                Button(isChinese ? "我知道了" : "OK", role: .cancel) {
+                    alreadyCheckedInAlertInfo = nil
+                }
+            } message: { info in
+                Text(isChinese
+                     ? "「\(info.icon) \(info.title)」今日已打卡，不可重复打卡 ✨\n\(info.countdown)"
+                     : "\"\(info.title)\" has already been checked in today!\n\(info.countdown)")
+            }
+            .alert(
+                isChinese ? "确认删除此打卡项？" : "Delete Habit Item?",
+                isPresented: Binding(
+                    get: { entryToDelete != nil },
+                    set: { if !$0 { entryToDelete = nil } }
+                ),
+                presenting: entryToDelete
+            ) { item in
+                Button(isChinese ? "删除" : "Delete", role: .destructive) {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                        store.deleteEntryFromModule(moduleId: moduleId, entryId: item.id)
+                    }
+                    entryToDelete = nil
+                }
+                Button(isChinese ? "取消" : "Cancel", role: .cancel) {
+                    entryToDelete = nil
+                }
+            } message: { item in
+                Text(isChinese ? "确定要删除「\(item.icon) \(item.title)」吗？此操作无法撤销。" : "Are you sure you want to delete \"\(item.title)\"?")
+            }
+            .alert(
+                isChinese ? "确认清空打卡列表中的所有项目？" : "Clear all items in habit list?",
+                isPresented: $isShowingClearAllItemsAlert
+            ) {
+                Button(isChinese ? "清空全部" : "Clear All", role: .destructive) {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                        store.clearAllEntriesInModule(moduleId: moduleId)
+                    }
+                }
+                Button(isChinese ? "取消" : "Cancel", role: .cancel) {}
+            } message: {
+                Text(isChinese ? "此操作会删除当前列表中的全部项目，方便您重新从上方点选或自定义添加。" : "This will delete all items in the current habit list.")
+            }
+    }
+}
+
