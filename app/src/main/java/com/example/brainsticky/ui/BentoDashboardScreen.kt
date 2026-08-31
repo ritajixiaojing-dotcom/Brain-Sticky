@@ -5,8 +5,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.example.brainsticky.data.DataStore
 import com.example.brainsticky.model.AppLanguage
 import com.example.brainsticky.model.WishlistCurrency
@@ -47,6 +50,11 @@ fun BentoDashboardScreen(
     val lang = dataStore.language
     var isShowingCaptureDialog by remember { mutableStateOf(false) }
     var isShowingCloudsOverview by remember { mutableStateOf(false) }
+    val cloudsSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { true }
+    )
+    val coroutineScope = rememberCoroutineScope()
 
     val totalPendingTodos = dataStore.todos.count { !it.isCompleted }
     val totalNotes = dataStore.stickyNotes.size
@@ -539,13 +547,15 @@ fun BentoDashboardScreen(
     if (isShowingCloudsOverview) {
         ModalBottomSheet(
             onDismissRequest = { isShowingCloudsOverview = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = cloudsSheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() },
             containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)
                     .padding(bottom = 36.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -573,7 +583,12 @@ fun BentoDashboardScreen(
                         )
                     }
 
-                    IconButton(onClick = { isShowingCloudsOverview = false }) {
+                    IconButton(onClick = {
+                        coroutineScope.launch {
+                            cloudsSheetState.hide()
+                            isShowingCloudsOverview = false
+                        }
+                    }) {
                         Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(20.dp))
                     }
                 }
@@ -585,127 +600,130 @@ fun BentoDashboardScreen(
                 val activeWishlist = dataStore.wishlistItems.filter { !it.isPurchased && !it.isAbandoned }
                 val activeHabits = dataStore.customModules.firstOrNull()?.entries?.filter { !it.isCompleted } ?: emptyList()
 
-                LazyColumn(
+                // 1. Todos
+                if (activeTodos.isNotEmpty()) {
+                    OverviewSectionCard(
+                        title = if (lang == AppLanguage.CHINESE) "📋 待办事项 (${activeTodos.size})" else "📋 Todos (${activeTodos.size})",
+                        color = BentoColors.UrgentCoral,
+                        items = activeTodos.map { it.title },
+                        onClick = {
+                            coroutineScope.launch {
+                                cloudsSheetState.hide()
+                                isShowingCloudsOverview = false
+                                onNavigate(ScreenRoute.TODO)
+                            }
+                        }
+                    )
+                }
+
+                // 2. Grocery
+                if (activeGrocery.isNotEmpty()) {
+                    OverviewSectionCard(
+                        title = if (lang == AppLanguage.CHINESE) "🥦 待买补货 (${activeGrocery.size})" else "🥦 Market (${activeGrocery.size})",
+                        color = BentoColors.GroceryMint,
+                        items = activeGrocery.map { "${it.aisle.icon} ${it.name}" },
+                        onClick = {
+                            coroutineScope.launch {
+                                cloudsSheetState.hide()
+                                isShowingCloudsOverview = false
+                                onNavigate(ScreenRoute.GROCERY)
+                            }
+                        }
+                    )
+                }
+
+                // 3. Wishlist
+                if (activeWishlist.isNotEmpty()) {
+                    OverviewSectionCard(
+                        title = if (lang == AppLanguage.CHINESE) "🛍️ 剁手冷静 (${activeWishlist.size})" else "🛍️ Wishlist (${activeWishlist.size})",
+                        color = BentoColors.WishlistRuby,
+                        items = activeWishlist.map { it.title },
+                        onClick = {
+                            coroutineScope.launch {
+                                cloudsSheetState.hide()
+                                isShowingCloudsOverview = false
+                                onNavigate(ScreenRoute.WISHLIST)
+                            }
+                        }
+                    )
+                }
+
+                // 4. Habits
+                if (activeHabits.isNotEmpty()) {
+                    OverviewSectionCard(
+                        title = if (lang == AppLanguage.CHINESE) "🎯 今日待打卡 (${activeHabits.size})" else "🎯 Check-ins (${activeHabits.size})",
+                        color = BentoColors.OmniElectric,
+                        items = activeHabits.map { "${it.icon} ${it.title}" },
+                        onClick = {
+                            coroutineScope.launch {
+                                cloudsSheetState.hide()
+                                isShowingCloudsOverview = false
+                                onNavigate(ScreenRoute.HABITS)
+                            }
+                        }
+                    )
+                }
+
+                // 5. Notes / Vault Summary
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // 1. Todos
-                    if (activeTodos.isNotEmpty()) {
-                        item {
-                            OverviewSectionCard(
-                                title = if (lang == AppLanguage.CHINESE) "📋 待办事项 (${activeTodos.size})" else "📋 Todos (${activeTodos.size})",
-                                color = BentoColors.UrgentCoral,
-                                items = activeTodos.map { it.title },
-                                onClick = {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(BentoColors.NoteAmber.copy(alpha = 0.12f))
+                            .clickable {
+                                coroutineScope.launch {
+                                    cloudsSheetState.hide()
                                     isShowingCloudsOverview = false
-                                    onNavigate(ScreenRoute.TODO)
-                                }
-                            )
-                        }
-                    }
-
-                    // 2. Grocery
-                    if (activeGrocery.isNotEmpty()) {
-                        item {
-                            OverviewSectionCard(
-                                title = if (lang == AppLanguage.CHINESE) "🥦 待买补货 (${activeGrocery.size})" else "🥦 Market (${activeGrocery.size})",
-                                color = BentoColors.GroceryMint,
-                                items = activeGrocery.map { "${it.aisle.icon} ${it.name}" },
-                                onClick = {
-                                    isShowingCloudsOverview = false
-                                    onNavigate(ScreenRoute.GROCERY)
-                                }
-                            )
-                        }
-                    }
-
-                    // 3. Wishlist
-                    if (activeWishlist.isNotEmpty()) {
-                        item {
-                            OverviewSectionCard(
-                                title = if (lang == AppLanguage.CHINESE) "🛍️ 剁手冷静 (${activeWishlist.size})" else "🛍️ Wishlist (${activeWishlist.size})",
-                                color = BentoColors.WishlistRuby,
-                                items = activeWishlist.map { it.title },
-                                onClick = {
-                                    isShowingCloudsOverview = false
-                                    onNavigate(ScreenRoute.WISHLIST)
-                                }
-                            )
-                        }
-                    }
-
-                    // 4. Habits
-                    if (activeHabits.isNotEmpty()) {
-                        item {
-                            OverviewSectionCard(
-                                title = if (lang == AppLanguage.CHINESE) "🎯 今日待打卡 (${activeHabits.size})" else "🎯 Check-ins (${activeHabits.size})",
-                                color = BentoColors.OmniElectric,
-                                items = activeHabits.map { "${it.icon} ${it.title}" },
-                                onClick = {
-                                    isShowingCloudsOverview = false
-                                    onNavigate(ScreenRoute.HABITS)
-                                }
-                            )
-                        }
-                    }
-
-                    // 5. Notes / Vault Summary
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(BentoColors.NoteAmber.copy(alpha = 0.12f))
-                                    .clickable {
-                                        isShowingCloudsOverview = false
-                                        onNavigate(ScreenRoute.DROPS)
-                                    }
-                                    .padding(12.dp)
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(
-                                        text = if (lang == AppLanguage.CHINESE) "✨ 日常便签" else "✨ Daily Notes",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        color = BentoColors.NoteAmber
-                                    )
-                                    Text(
-                                        text = if (lang == AppLanguage.CHINESE) "已存 ${dataStore.stickyNotes.size} 条灵感" else "${dataStore.stickyNotes.size} notes",
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                    )
+                                    onNavigate(ScreenRoute.DROPS)
                                 }
                             }
+                            .padding(12.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "✨ 日常便签" else "✨ Daily Notes",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = BentoColors.NoteAmber
+                            )
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "已存 ${dataStore.stickyNotes.size} 条灵感" else "${dataStore.stickyNotes.size} notes",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
 
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(BentoColors.VaultViolet.copy(alpha = 0.12f))
-                                    .clickable {
-                                        isShowingCloudsOverview = false
-                                        onNavigate(ScreenRoute.VAULT)
-                                    }
-                                    .padding(12.dp)
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text(
-                                        text = if (lang == AppLanguage.CHINESE) "🔐 密码钥匙盒" else "🔐 Vault",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        color = BentoColors.VaultViolet
-                                    )
-                                    Text(
-                                        text = if (lang == AppLanguage.CHINESE) "已存 ${dataStore.vaultItems.size} 条凭证" else "${dataStore.vaultItems.size} items",
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                    )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(BentoColors.VaultViolet.copy(alpha = 0.12f))
+                            .clickable {
+                                coroutineScope.launch {
+                                    cloudsSheetState.hide()
+                                    isShowingCloudsOverview = false
+                                    onNavigate(ScreenRoute.VAULT)
                                 }
                             }
+                            .padding(12.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "🔐 密码钥匙盒" else "🔐 Vault",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = BentoColors.VaultViolet
+                            )
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "已存 ${dataStore.vaultItems.size} 条凭证" else "${dataStore.vaultItems.size} items",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
                         }
                     }
                 }
