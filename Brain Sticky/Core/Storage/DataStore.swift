@@ -95,7 +95,10 @@ public final class DataStore: ObservableObject {
     public func updateTodo(_ item: TodoItem) {
         if let idx = todos.firstIndex(where: { $0.id == item.id }) {
             todos[idx] = item
-            NotificationManager.shared.scheduleTodoReminder(item: item)
+            NotificationManager.shared.cancelTodoReminder(id: item.id)
+            if !item.isCompleted && item.reminderMinutes != nil {
+                NotificationManager.shared.scheduleTodoReminder(item: item)
+            }
         }
     }
 

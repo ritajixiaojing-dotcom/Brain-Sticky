@@ -176,6 +176,19 @@ public struct TodoListView: View {
                         .clipShape(Capsule())
                     }
                 }
+                
+                // 震动提示：选定时间后明确告知用户时间到了会开启震动
+                if quickMinutes != nil {
+                    HStack(spacing: 4) {
+                        Image(systemName: "iphone.radiowaves.left.and.right")
+                            .font(.system(size: 11))
+                        Text(langManager.currentLanguage == .chinese ? "已设 \(quickMinutes ?? 0) 分钟定时 · 时间到了将强力震动提醒" : "Timer set to \(quickMinutes ?? 0)m · Phone will vibrate when time is up")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                    }
+                    .foregroundColor(BentoColors.urgentCoral)
+                    .padding(.top, 2)
+                    .transition(.opacity)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 6)
@@ -319,9 +332,20 @@ struct TodoItemRow: View {
                     .foregroundColor(item.isCompleted ? .secondary : .primary)
                 
                 if let mins = item.reminderMinutes {
-                    Text(langManager.currentLanguage == .chinese ? "\(mins)分后" : "in \(mins)m")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundColor(.orange)
+                    let targetDate = item.createdAt.addingTimeInterval(Double(mins * 60))
+                    let isExpired = Date() >= targetDate && !item.isCompleted
+                    
+                    HStack(spacing: 3) {
+                        Image(systemName: isExpired ? "bell.badge.fill" : "alarm.fill")
+                            .font(.system(size: 9))
+                        Text(isExpired ? (langManager.currentLanguage == .chinese ? "已到期 📳" : "Time's up 📳") : (langManager.currentLanguage == .chinese ? "\(mins)分后 📳" : "\(mins)m 📳"))
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                    }
+                    .foregroundColor(isExpired ? BentoColors.urgentCoral : .orange)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background((isExpired ? BentoColors.urgentCoral : Color.orange).opacity(0.12))
+                    .clipShape(Capsule())
                 }
             }
             
@@ -490,6 +514,17 @@ struct AddTodoSheet: View {
                                     .bouncyTap(scale: 0.96)
                                 }
                                 .padding(.vertical, 2)
+                            }
+                            
+                            if reminderMinutes != nil {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "iphone.radiowaves.left.and.right")
+                                        .font(.system(size: 11))
+                                    Text(langManager.currentLanguage == .chinese ? "已设定时 · 时间到了系统将推送通知并开启多波强力震动提示" : "Timer active · Phone will alert and vibrate when time is up")
+                                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                                }
+                                .foregroundColor(BentoColors.urgentCoral)
+                                .padding(.top, 2)
                             }
                         }
                     }
@@ -712,6 +747,17 @@ struct EditTodoSheet: View {
                                 .background((item.reminderMinutes == nil ? Color.gray : BentoColors.urgentCoral).opacity(0.12))
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             }
+                        }
+                        
+                        if item.reminderMinutes != nil {
+                            HStack(spacing: 4) {
+                                Image(systemName: "iphone.radiowaves.left.and.right")
+                                    .font(.system(size: 11))
+                                Text(langManager.currentLanguage == .chinese ? "时间到了将通过系统通知与强力震动提示" : "Will alert with notifications and strong vibration")
+                                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                            }
+                            .foregroundColor(BentoColors.urgentCoral)
+                            .padding(.top, 2)
                         }
                     }
                     .padding(14)

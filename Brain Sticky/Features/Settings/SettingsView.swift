@@ -14,6 +14,7 @@ public struct SettingsView: View {
     @ObservedObject var langManager = AppLanguageManager.shared
     
     @AppStorage("enableHaptics") private var enableHaptics: Bool = true
+    @AppStorage("enableTimerVibration") private var enableTimerVibration: Bool = true
     @AppStorage("autoLockVaultOnBackground") private var autoLockOnBackground: Bool = true
     @State private var isShowingResetAlert: Bool = false
     
@@ -31,15 +32,43 @@ public struct SettingsView: View {
                     .listRowInsets(EdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14))
                 }
                 
-                // MARK: - 触感反馈 (Haptics)
-                
-                Section(header: Text(langManager.localized(.hapticsHeader)).font(.system(size: 11, weight: .bold, design: .rounded))) {
+                // MARK: - 触感与到期提醒反馈 (Haptics & Timer Alerts)
+                Section(header: Text(langManager.currentLanguage == .chinese ? "触感与到期提醒" : "Haptics & Timer Alerts").font(.system(size: 11, weight: .bold, design: .rounded))) {
                     Toggle(isOn: $enableHaptics) {
                         HStack {
                             Image(systemName: "hand.tap.fill")
                                 .foregroundColor(BentoColors.noteAmber)
                             Text(langManager.localized(.hapticsFeedback))
                                 .font(.system(size: 14, weight: .medium, design: .rounded))
+                        }
+                    }
+                    
+                    Toggle(isOn: $enableTimerVibration) {
+                        HStack {
+                            Image(systemName: "iphone.radiowaves.left.and.right")
+                                .foregroundColor(BentoColors.urgentCoral)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(langManager.currentLanguage == .chinese ? "待办时间到期强力震动" : "Todo Timer Alarm Vibration")
+                                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                                Text(langManager.currentLanguage == .chinese ? "时间到了以后多波持续震动提醒，防止漏看" : "Vibrate strongly when reminder time is reached")
+                                    .font(.system(size: 11, design: .rounded))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    
+                    Button(action: {
+                        NotificationManager.triggerAlarmVibration()
+                    }) {
+                        HStack {
+                            Image(systemName: "bell.and.waves.left.and.right.fill")
+                                .foregroundColor(BentoColors.omniElectric)
+                            Text(langManager.currentLanguage == .chinese ? "测试到期震动效果" : "Test Timer Vibration")
+                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                            Spacer()
+                            Text(langManager.currentLanguage == .chinese ? "轻触感受 📳" : "Tap to feel 📳")
+                                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                .foregroundColor(BentoColors.urgentCoral)
                         }
                     }
                 }
