@@ -74,18 +74,6 @@ public struct SettingsView: View {
                 }
                 
                 Section(header: Text(langManager.localized(.dataHeader)).font(.system(size: 11, weight: .bold, design: .rounded))) {
-                    Button(action: {
-                        store.seedSampleData()
-                        HapticManager.shared.notification(.success)
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.clockwise.circle")
-                                .foregroundColor(BentoColors.omniElectric)
-                            Text(langManager.localized(.resetData))
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
-                        }
-                    }
-                    
                     Button(role: .destructive, action: { isShowingResetAlert = true }) {
                         HStack {
                             Image(systemName: "trash")
