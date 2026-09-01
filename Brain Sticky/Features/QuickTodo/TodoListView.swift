@@ -14,7 +14,17 @@ public struct TodoListView: View {
     @State private var newTodoText: String = ""
     @State private var selectedPriority: TodoPriority = .urgent
     @State private var quickMinutes: Int? = 15
+    @State private var customMinutes: Int? = nil
+    @State private var isShowingCustomMinutesAlert: Bool = false
+    @State private var customMinutesInput: String = ""
     @State private var editingItem: TodoItem? = nil
+    
+    private var customButtonTitle: String {
+        if let custom = customMinutes, quickMinutes == custom {
+            return langManager.currentLanguage == .chinese ? "自定义(\(custom)分)" : "Custom(\(custom)m)"
+        }
+        return langManager.currentLanguage == .chinese ? "自定义" : "Custom"
+    }
     
     enum TodoFilter: String, CaseIterable {
         case all = "全部"
@@ -77,34 +87,63 @@ public struct TodoListView: View {
                 .background(BentoColors.bgSecondary)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 
-                // 定时预设 (含 ∞ 无期限) 与 优先级选择
+                // 定时预设 (5分 15分 30分 60分 无限 自定义) 与 优先级选择 (紧急 日常 随缘 保留) - 字体变大
                 let minuteLabels: [(Int?, String)] = [
                     (5, langManager.currentLanguage == .chinese ? "5分" : "5m"),
                     (15, langManager.currentLanguage == .chinese ? "15分" : "15m"),
                     (30, langManager.currentLanguage == .chinese ? "30分" : "30m"),
                     (60, langManager.currentLanguage == .chinese ? "60分" : "60m"),
-                    (nil as Int?, "∞")
+                    (nil as Int?, langManager.currentLanguage == .chinese ? "无限" : "No Limit")
                 ]
                 
-                HStack(spacing: 6) {
-                    ForEach(minuteLabels, id: \.1) { option in
-                        Button(action: {
-                            quickMinutes = option.0
-                            HapticManager.shared.selection()
-                        }) {
-                            Text(option.1)
-                                .font(.system(size: option.0 == nil ? 14 : 11, weight: .bold, design: .rounded))
-                                .padding(.horizontal, option.0 == nil ? 9 : 8)
-                                .padding(.vertical, 3)
-                                .background(quickMinutes == option.0 ? BentoColors.urgentCoral : BentoColors.bgCard)
-                                .foregroundColor(quickMinutes == option.0 ? .white : .secondary)
-                                .clipShape(Capsule())
+                HStack(spacing: 8) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(minuteLabels, id: \.1) { option in
+                                let isSelected = (option.0 == nil ? quickMinutes == nil : (quickMinutes == option.0 && (customMinutes == nil || quickMinutes != customMinutes)))
+                                Button(action: {
+                                    quickMinutes = option.0
+                                    HapticManager.shared.selection()
+                                }) {
+                                    Text(option.1)
+                                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                                        .padding(.horizontal, 11)
+                                        .padding(.vertical, 6)
+                                        .background(isSelected ? BentoColors.urgentCoral : BentoColors.bgCard)
+                                        .foregroundColor(isSelected ? .white : .secondary)
+                                        .clipShape(Capsule())
+                                }
+                                .bouncyTap(scale: 0.95)
+                            }
+                            
+                            // 自定义
+                            let isCustomActive = (customMinutes != nil && quickMinutes == customMinutes)
+                            Button(action: {
+                                if isCustomActive {
+                                    customMinutesInput = "\(customMinutes ?? 45)"
+                                    isShowingCustomMinutesAlert = true
+                                } else if let custom = customMinutes {
+                                    quickMinutes = custom
+                                    HapticManager.shared.selection()
+                                } else {
+                                    customMinutesInput = ""
+                                    isShowingCustomMinutesAlert = true
+                                }
+                            }) {
+                                Text(customButtonTitle)
+                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .padding(.horizontal, 11)
+                                    .padding(.vertical, 6)
+                                    .background(isCustomActive ? BentoColors.urgentCoral : BentoColors.bgCard)
+                                    .foregroundColor(isCustomActive ? .white : .secondary)
+                                    .clipShape(Capsule())
+                            }
+                            .bouncyTap(scale: 0.95)
                         }
-                        .bouncyTap(scale: 0.95)
+                        .padding(.vertical, 2)
                     }
                     
-                    Spacer()
-                    
+                    // 右边保留: 紧急 | 日常 | 随缘
                     Menu {
                         ForEach(TodoPriority.allCases, id: \.self) { p in
                             Button(action: {
@@ -120,20 +159,20 @@ public struct TodoListView: View {
                             }
                         }
                     } label: {
-                        HStack(spacing: 3) {
+                        HStack(spacing: 4) {
                             Circle()
                                 .fill(selectedPriority.color)
-                                .frame(width: 6, height: 6)
+                                .frame(width: 8, height: 8)
                             Text(selectedPriority.localized(lang: langManager.currentLanguage))
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .foregroundColor(selectedPriority.color)
                             Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(selectedPriority.color)
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(selectedPriority.color.opacity(0.12))
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 6)
+                        .background(selectedPriority.color.opacity(0.14))
                         .clipShape(Capsule())
                     }
                 }
@@ -210,6 +249,27 @@ public struct TodoListView: View {
             if let item = itemToDelete {
                 Text(langManager.currentLanguage == .chinese ? "确定要删除待办「\(item.title)」吗？" : "Are you sure you want to delete \"\(item.title)\"?")
             }
+        }
+        .alert(
+            langManager.currentLanguage == .chinese ? "自定义提醒时间" : "Custom Reminder Time",
+            isPresented: $isShowingCustomMinutesAlert
+        ) {
+            TextField(
+                langManager.currentLanguage == .chinese ? "输入分钟数 (如 45, 90, 120)" : "Enter minutes (e.g. 45, 90)",
+                text: $customMinutesInput
+            )
+            .keyboardType(.numberPad)
+            Button(langManager.currentLanguage == .chinese ? "确定" : "OK") {
+                let clean = customMinutesInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let mins = Int(clean), mins > 0 {
+                    customMinutes = mins
+                    quickMinutes = mins
+                    HapticManager.shared.notification(.success)
+                }
+            }
+            Button(langManager.localized(.cancel), role: .cancel) {}
+        } message: {
+            Text(langManager.currentLanguage == .chinese ? "请输入多少分钟后通过通知提醒您" : "Please enter the number of minutes until you are reminded")
         }
         .sheet(item: $editingItem) { item in
             EditTodoSheet(item: item)
@@ -311,6 +371,16 @@ struct AddTodoSheet: View {
     @State private var title: String = ""
     @State private var selectedPriority: TodoPriority = .urgent
     @State private var reminderMinutes: Int? = 15
+    @State private var customMinutes: Int? = nil
+    @State private var isShowingCustomMinutesAlert: Bool = false
+    @State private var customMinutesInput: String = ""
+    
+    private var customButtonTitle: String {
+        if let custom = customMinutes, reminderMinutes == custom {
+            return langManager.currentLanguage == .chinese ? "自定义(\(custom)分)" : "Custom(\(custom)m)"
+        }
+        return langManager.currentLanguage == .chinese ? "自定义" : "Custom"
+    }
     
     var isSubmitDisabled: Bool {
         title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -324,7 +394,7 @@ struct AddTodoSheet: View {
                         // 待办内容
                         VStack(alignment: .leading, spacing: 6) {
                             Text(langManager.currentLanguage == .chinese ? "待办内容" : "Todo Details")
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(.secondary)
                             
                             TextField(
@@ -338,10 +408,10 @@ struct AddTodoSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                         
-                        // 优先级
+                        // 优先级 (紧急 | 日常 | 随缘) - 字体变大
                         VStack(alignment: .leading, spacing: 6) {
                             Text(langManager.currentLanguage == .chinese ? "优先级" : "Priority")
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(.secondary)
                             
                             HStack(spacing: 8) {
@@ -351,7 +421,7 @@ struct AddTodoSheet: View {
                                         HapticManager.shared.selection()
                                     }) {
                                         Text(priority.localized(lang: langManager.currentLanguage))
-                                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                                            .font(.system(size: 15, weight: .bold, design: .rounded))
                                             .frame(maxWidth: .infinity)
                                             .padding(.vertical, 8)
                                             .background(selectedPriority == priority ? priority.color : BentoColors.bgCard)
@@ -363,10 +433,10 @@ struct AddTodoSheet: View {
                             }
                         }
                         
-                        // 提醒定时
+                        // 提醒定时 (5分 15分 30分 60分 无限 自定义) - 字体变大
                         VStack(alignment: .leading, spacing: 6) {
                             Text(langManager.currentLanguage == .chinese ? "提醒定时" : "Reminder Timer")
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(.secondary)
                             
                             let minuteOptions: [(Int?, String)] = [
@@ -374,25 +444,53 @@ struct AddTodoSheet: View {
                                 (15, langManager.currentLanguage == .chinese ? "15分" : "15m"),
                                 (30, langManager.currentLanguage == .chinese ? "30分" : "30m"),
                                 (60, langManager.currentLanguage == .chinese ? "60分" : "60m"),
-                                (nil as Int?, "∞")
+                                (nil as Int?, langManager.currentLanguage == .chinese ? "无限" : "No Limit")
                             ]
                             
-                            HStack(spacing: 6) {
-                                ForEach(minuteOptions, id: \.1) { option in
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 6) {
+                                    ForEach(minuteOptions, id: \.1) { option in
+                                        let isSelected = (option.0 == nil ? reminderMinutes == nil : (reminderMinutes == option.0 && (customMinutes == nil || reminderMinutes != customMinutes)))
+                                        Button(action: {
+                                            reminderMinutes = option.0
+                                            HapticManager.shared.selection()
+                                        }) {
+                                            Text(option.1)
+                                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                                .padding(.horizontal, 11)
+                                                .padding(.vertical, 7)
+                                                .background(isSelected ? BentoColors.urgentCoral : BentoColors.bgCard)
+                                                .foregroundColor(isSelected ? .white : .primary)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        }
+                                        .bouncyTap(scale: 0.96)
+                                    }
+                                    
+                                    // 自定义
+                                    let isCustomActive = (customMinutes != nil && reminderMinutes == customMinutes)
                                     Button(action: {
-                                        reminderMinutes = option.0
-                                        HapticManager.shared.selection()
+                                        if isCustomActive {
+                                            customMinutesInput = "\(customMinutes ?? 45)"
+                                            isShowingCustomMinutesAlert = true
+                                        } else if let custom = customMinutes {
+                                            reminderMinutes = custom
+                                            HapticManager.shared.selection()
+                                        } else {
+                                            customMinutesInput = ""
+                                            isShowingCustomMinutesAlert = true
+                                        }
                                     }) {
-                                        Text(option.1)
-                                            .font(.system(size: option.0 == nil ? 16 : 12, weight: .bold, design: .rounded))
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, option.0 == nil ? 6 : 8)
-                                            .background(reminderMinutes == option.0 ? BentoColors.urgentCoral : BentoColors.bgCard)
-                                            .foregroundColor(reminderMinutes == option.0 ? .white : .primary)
+                                        Text(customButtonTitle)
+                                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                                            .padding(.horizontal, 11)
+                                            .padding(.vertical, 7)
+                                            .background(isCustomActive ? BentoColors.urgentCoral : BentoColors.bgCard)
+                                            .foregroundColor(isCustomActive ? .white : .primary)
                                             .clipShape(RoundedRectangle(cornerRadius: 8))
                                     }
                                     .bouncyTap(scale: 0.96)
                                 }
+                                .padding(.vertical, 2)
                             }
                         }
                     }
@@ -441,6 +539,27 @@ struct AddTodoSheet: View {
                     Button(langManager.localized(.cancel)) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                 }
+            }
+            .alert(
+                langManager.currentLanguage == .chinese ? "自定义提醒时间" : "Custom Reminder Time",
+                isPresented: $isShowingCustomMinutesAlert
+            ) {
+                TextField(
+                    langManager.currentLanguage == .chinese ? "输入分钟数 (如 45, 90, 120)" : "Enter minutes (e.g. 45, 90)",
+                    text: $customMinutesInput
+                )
+                .keyboardType(.numberPad)
+                Button(langManager.currentLanguage == .chinese ? "确定" : "OK") {
+                    let clean = customMinutesInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if let mins = Int(clean), mins > 0 {
+                        customMinutes = mins
+                        reminderMinutes = mins
+                        HapticManager.shared.notification(.success)
+                    }
+                }
+                Button(langManager.localized(.cancel), role: .cancel) {}
+            } message: {
+                Text(langManager.currentLanguage == .chinese ? "请输入多少分钟后通过通知提醒您" : "Please enter the number of minutes until you are reminded")
             }
         }
     }
