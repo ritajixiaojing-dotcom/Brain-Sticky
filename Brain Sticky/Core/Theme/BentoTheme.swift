@@ -301,3 +301,37 @@ public struct CuteHollowTitleView: View {
         .shadow(color: strokeColor.opacity(0.18), radius: 4, y: 2)
     }
 }
+
+// MARK: - 原生分享与剪贴板管理器 (全面兼容微信 WeChat、WhatsApp、备忘录等)
+public final class ShareManager {
+    public static let shared = ShareManager()
+    private init() {}
+    
+    /// 触发原生系统分享面板（以纯文本形式发送，完美解决微信和 WhatsApp 点击下一步卡死问题）
+    public static func shareText(_ text: String) {
+        guard let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
+        
+        var topController = rootVC
+        while let presented = topController.presentedViewController {
+            topController = presented
+        }
+        
+        let activityVC = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+        
+        // 适配 iPad 弹窗，防止崩溃
+        if let popover = activityVC.popoverPresentationController {
+            popover.sourceView = topController.view
+            popover.sourceRect = CGRect(x: topController.view.bounds.midX, y: topController.view.bounds.midY, width: 0, height: 0)
+            popover.permittedArrowDirections = []
+        }
+        
+        topController.present(activityVC, animated: true)
+    }
+    
+    /// 复制到剪贴板，提供触感反馈
+    public static func copyToClipboard(_ text: String) {
+        UIPasteboard.general.string = text
+        HapticManager.shared.notification(.success)
+    }
+}

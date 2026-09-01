@@ -87,7 +87,7 @@ public struct TodoListView: View {
                 .background(BentoColors.bgSecondary)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 
-                // 定时预设 (5分 15分 30分 60分 无限 自定义) 与 优先级选择 (紧急 日常 随缘 保留) - 字体变大
+                // 定时预设 (5分 15分 30分 60分 无限 自定义) 与 优先级选择 (紧急 日常 随缘 保留) - 13pt 不加粗
                 let minuteLabels: [(Int?, String)] = [
                     (5, langManager.currentLanguage == .chinese ? "5分" : "5m"),
                     (15, langManager.currentLanguage == .chinese ? "15分" : "15m"),
@@ -106,9 +106,9 @@ public struct TodoListView: View {
                                     HapticManager.shared.selection()
                                 }) {
                                     Text(option.1)
-                                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                                        .padding(.horizontal, 11)
-                                        .padding(.vertical, 6)
+                                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                                        .padding(.horizontal, 9)
+                                        .padding(.vertical, 5)
                                         .background(isSelected ? BentoColors.urgentCoral : BentoColors.bgCard)
                                         .foregroundColor(isSelected ? .white : .secondary)
                                         .clipShape(Capsule())
@@ -131,9 +131,9 @@ public struct TodoListView: View {
                                 }
                             }) {
                                 Text(customButtonTitle)
-                                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                                    .padding(.horizontal, 11)
-                                    .padding(.vertical, 6)
+                                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                                    .padding(.horizontal, 9)
+                                    .padding(.vertical, 5)
                                     .background(isCustomActive ? BentoColors.urgentCoral : BentoColors.bgCard)
                                     .foregroundColor(isCustomActive ? .white : .secondary)
                                     .clipShape(Capsule())
@@ -143,7 +143,7 @@ public struct TodoListView: View {
                         .padding(.vertical, 2)
                     }
                     
-                    // 右边保留: 紧急 | 日常 | 随缘
+                    // 右边保留: 紧急 | 日常 | 随缘 (13pt 不加粗)
                     Menu {
                         ForEach(TodoPriority.allCases, id: \.self) { p in
                             Button(action: {
@@ -162,16 +162,16 @@ public struct TodoListView: View {
                         HStack(spacing: 4) {
                             Circle()
                                 .fill(selectedPriority.color)
-                                .frame(width: 8, height: 8)
+                                .frame(width: 6, height: 6)
                             Text(selectedPriority.localized(lang: langManager.currentLanguage))
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
                                 .foregroundColor(selectedPriority.color)
                             Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 9, weight: .medium))
                                 .foregroundColor(selectedPriority.color)
                         }
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 6)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
                         .background(selectedPriority.color.opacity(0.14))
                         .clipShape(Capsule())
                     }
@@ -327,11 +327,10 @@ struct TodoItemRow: View {
             
             Spacer()
             
-            // ⚡ 帮我办 / 分享给别人
-            ShareLink(
-                item: "⚡【请你帮我办件事】\n\(item.title)\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)",
-                preview: SharePreview("帮我办: \(item.title)", image: Image(systemName: "bolt.horizontal.fill"))
-            ) {
+            // ⚡ 帮我办 / 分享给别人 (支持微信 / WhatsApp)
+            Button(action: {
+                ShareManager.shareText("⚡【请你帮我办件事】\n\(item.title)\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)")
+            }) {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(BentoColors.urgentCoral)
@@ -456,9 +455,9 @@ struct AddTodoSheet: View {
                                             HapticManager.shared.selection()
                                         }) {
                                             Text(option.1)
-                                                .font(.system(size: 15, weight: .bold, design: .rounded))
-                                                .padding(.horizontal, 11)
-                                                .padding(.vertical, 7)
+                                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                                                .padding(.horizontal, 9)
+                                                .padding(.vertical, 6)
                                                 .background(isSelected ? BentoColors.urgentCoral : BentoColors.bgCard)
                                                 .foregroundColor(isSelected ? .white : .primary)
                                                 .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -481,9 +480,9 @@ struct AddTodoSheet: View {
                                         }
                                     }) {
                                         Text(customButtonTitle)
-                                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                                            .padding(.horizontal, 11)
-                                            .padding(.vertical, 7)
+                                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                                            .padding(.horizontal, 9)
+                                            .padding(.vertical, 6)
                                             .background(isCustomActive ? BentoColors.urgentCoral : BentoColors.bgCard)
                                             .foregroundColor(isCustomActive ? .white : .primary)
                                             .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -719,14 +718,13 @@ struct EditTodoSheet: View {
                     .background(BentoColors.bgSecondary)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     
-                    // 分享托付按钮
-                    ShareLink(
-                        item: "⚡【请你帮我办件事】\n\(item.title)\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)",
-                        preview: SharePreview("帮我办: \(item.title)", image: Image(systemName: "bolt.horizontal.fill"))
-                    ) {
+                    // 分享托付按钮 (支持微信、WhatsApp 等)
+                    Button(action: {
+                        ShareManager.shareText("⚡【请你帮我办件事】\n\(item.title)\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)")
+                    }) {
                         HStack {
                             Spacer()
-                            Label(langManager.currentLanguage == .chinese ? "⚡ 请别人帮办 (分享)" : "⚡ Delegate Todo (Share)", systemImage: "square.and.arrow.up")
+                            Label(langManager.currentLanguage == .chinese ? "⚡ 请别人帮办 (微信/WhatsApp)" : "⚡ Delegate Todo (Share)", systemImage: "square.and.arrow.up")
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
                                 .foregroundColor(BentoColors.urgentCoral)
                             Spacer()
@@ -735,6 +733,7 @@ struct EditTodoSheet: View {
                         .background(BentoColors.bgSecondary)
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
+                    .buttonStyle(.plain)
                     
                     // 删除按钮
                     Button(role: .destructive) {

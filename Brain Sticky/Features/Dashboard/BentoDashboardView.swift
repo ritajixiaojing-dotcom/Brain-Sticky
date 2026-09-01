@@ -13,6 +13,16 @@ public struct BentoDashboardView: View {
     @State private var isShowingOmni: Bool = false
     @State private var isShowingSettings: Bool = false
     @State private var isShowingCloudsOverview: Bool = false
+    @FocusState private var isSearchFocused: Bool
+    
+    private func exitSearch() {
+        withAnimation(.easeInOut(duration: 0.22)) {
+            store.searchText = ""
+            isSearchFocused = false
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
+        HapticManager.shared.impact(.light)
+    }
     
     let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -87,30 +97,50 @@ public struct BentoDashboardView: View {
                         
                         // MARK: - 极简搜索条 (Minimalist Search)
                         HStack(spacing: 8) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.secondary)
-                            
-                            TextField(langManager.localized(.searchPlaceholder), text: $store.searchText)
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
-                            
-                            if !store.searchText.isEmpty {
-                                Button(action: { store.searchText = "" }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.secondary)
+                            HStack(spacing: 8) {
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.secondary)
+                                
+                                TextField(langManager.localized(.searchPlaceholder), text: $store.searchText)
+                                    .focused($isSearchFocused)
+                                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                                    .submitLabel(.search)
+                                
+                                if !store.searchText.isEmpty {
+                                    Button(action: {
+                                        store.searchText = ""
+                                        HapticManager.shared.selection()
+                                    }) {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.secondary)
+                                    }
                                 }
                             }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.white.opacity(0.94))
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(Color.white.opacity(0.9), lineWidth: 1)
+                            )
+                            .shadow(color: Color(red: 145/255, green: 135/255, blue: 165/255).opacity(0.12), radius: 10, x: 0, y: 4)
+                            .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
+                            
+                            // 搜索中或键盘唤起时，显示退出取消按钮
+                            if isSearchFocused || !store.searchText.isEmpty {
+                                Button(action: {
+                                    exitSearch()
+                                }) {
+                                    Text(langManager.localized(.cancel))
+                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                        .foregroundColor(BentoColors.urgentCoral)
+                                        .padding(.leading, 2)
+                                }
+                                .transition(.move(edge: .trailing).combined(with: .opacity))
+                            }
                         }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(Color.white.opacity(0.94))
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(Color.white.opacity(0.9), lineWidth: 1)
-                        )
-                        .shadow(color: Color(red: 145/255, green: 135/255, blue: 165/255).opacity(0.12), radius: 10, x: 0, y: 4)
-                        .shadow(color: Color.black.opacity(0.03), radius: 2, x: 0, y: 1)
                         .padding(.horizontal, 18)
                         
                         if !store.searchText.isEmpty {
@@ -165,6 +195,17 @@ public struct BentoDashboardView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .dismissKeyboardOnTap()
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 20)
+                        .onEnded { value in
+                            // 如果处于搜索状态或键盘唤起，用户向左滑动（或向右滑动）立即退出搜索，收起键盘，返回桌面
+                            if isSearchFocused || !store.searchText.isEmpty {
+                                if abs(value.translation.width) > 30 && abs(value.translation.height) < 75 {
+                                    exitSearch()
+                                }
+                            }
+                        }
+                )
                 
                 // MARK: - 可爱浮动录入按键 (Cute Fast Action Pill)
                 Button(action: {
@@ -844,7 +885,8 @@ struct CloudsOverviewSheet: View {
                             title: langManager.localized(.todoTitle),
                             icon: "checklist",
                             color: BentoColors.urgentCoral,
-                            items: pendingTodos.map { $0.title }
+                            items: pendingTodos.map { $0.title },
+                            destination: TodoListView()
                         )
                     }
                     
@@ -854,7 +896,8 @@ struct CloudsOverviewSheet: View {
                             title: langManager.localized(.dropsTitle),
                             icon: "sparkles",
                             color: BentoColors.noteAmber,
-                            items: store.stickyNotes.map { "\($0.moodEmoji) \($0.content)" }
+                            items: store.stickyNotes.map { "\($0.moodEmoji) \($0.content)" },
+                            destination: StickyNotesWallView()
                         )
                     }
                     
@@ -865,7 +908,8 @@ struct CloudsOverviewSheet: View {
                             title: langManager.localized(.groceryTitle),
                             icon: "cart.fill",
                             color: BentoColors.groceryMint,
-                            items: pendingGroceries.map { "\($0.aisle.icon) \($0.name)" }
+                            items: pendingGroceries.map { "\($0.aisle.icon) \($0.name)" },
+                            destination: GroceryListView()
                         )
                     }
                     
@@ -876,7 +920,8 @@ struct CloudsOverviewSheet: View {
                             title: langManager.localized(.wishlistTitle),
                             icon: "gift.fill",
                             color: BentoColors.wishlistRuby,
-                            items: activeWishlist.map { "\($0.currency)\(Int($0.targetPrice)) \($0.title)" }
+                            items: activeWishlist.map { "\($0.currency)\(Int($0.targetPrice)) \($0.title)" },
+                            destination: WishlistMainView()
                         )
                     }
                     
@@ -886,7 +931,8 @@ struct CloudsOverviewSheet: View {
                             title: langManager.localized(.vaultTitle),
                             icon: "lock.fill",
                             color: BentoColors.vaultViolet,
-                            items: store.vaultItems.map { "\($0.title) (••••••••)" }
+                            items: store.vaultItems.map { "\($0.title) (••••••••)" },
+                            destination: VaultMainView()
                         )
                     }
                     
@@ -919,55 +965,71 @@ struct CloudsOverviewSheet: View {
     }
 }
 
-struct OverviewCategoryCard: View {
+struct OverviewCategoryCard<Destination: View>: View {
     let title: String
     let icon: String
     let color: Color
     let items: [String]
+    let destination: Destination
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(color)
-                Text(title)
-                    .font(.system(size: 14, weight: .heavy, design: .rounded))
-                    .foregroundColor(color)
-                Spacer()
-                Text("\(items.count)")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(color)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(color.opacity(0.12))
-                    .clipShape(Capsule())
-            }
-            
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(items.prefix(4), id: \.self) { text in
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(color.opacity(0.6))
-                            .frame(width: 4, height: 4)
-                        Text(text)
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
-                            .lineLimit(1)
+        NavigationLink(destination: destination) {
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 6) {
+                    Image(systemName: icon)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(color)
+                    Text(title)
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .foregroundColor(color)
+                    Spacer()
+                    Text("\(items.count) 项")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundColor(color)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(color.opacity(0.12))
+                        .clipShape(Capsule())
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.secondary.opacity(0.6))
+                }
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(items.prefix(4), id: \.self) { text in
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(color.opacity(0.6))
+                                .frame(width: 5, height: 5)
+                            Text(text)
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                            Spacer()
+                        }
+                    }
+                    if items.count > 4 {
+                        Text("+ 还有 \(items.count - 4) 项，点击进入查看详情 ›")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundColor(color)
+                            .padding(.leading, 13)
                     }
                 }
-                if items.count > 4 {
-                    Text("+ 还有 \(items.count - 4) 项...")
-                        .font(.system(size: 11, design: .rounded))
-                        .foregroundColor(.secondary)
-                        .padding(.leading, 10)
+                
+                HStack {
+                    Spacer()
+                    Text("点击查看全部事项 ›")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundColor(color.opacity(0.85))
                 }
             }
+            .padding(14)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+            .padding(.horizontal, 16)
         }
-        .padding(14)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
-        .padding(.horizontal, 16)
+        .buttonStyle(.plain)
     }
 }
 

@@ -100,11 +100,16 @@ public struct StickyNotesWallView: View {
                                     .tint(.orange)
                                 }
                                 .contextMenu {
-                                    ShareLink(
-                                        item: "【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)",
-                                        preview: SharePreview("便签: \(note.content.prefix(20))", image: Image(systemName: "note.text"))
-                                    ) {
-                                        Label(langManager.currentLanguage == .chinese ? "分享便签" : "Share Note", systemImage: "square.and.arrow.up")
+                                    Button(action: {
+                                        ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)")
+                                    }) {
+                                        Label(langManager.currentLanguage == .chinese ? "分享便签 (微信/WhatsApp)" : "Share Note", systemImage: "square.and.arrow.up")
+                                    }
+                                    
+                                    Button(action: {
+                                        ShareManager.copyToClipboard("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)")
+                                    }) {
+                                        Label(langManager.currentLanguage == .chinese ? "复制内容" : "Copy Content", systemImage: "doc.on.doc")
                                     }
                                     
                                     Button(action: {
@@ -363,14 +368,30 @@ struct EnlargedStickyNoteViewerSheet: View {
                             .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
                         }
                         
-                        // 分享按钮
-                        ShareLink(
-                            item: "【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)",
-                            preview: SharePreview("便签: \(note.content.prefix(20))", image: Image(systemName: "note.text"))
-                        ) {
+                        // 分享按钮 (支持微信、WhatsApp 等)
+                        Button(action: {
+                            ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)")
+                        }) {
                             HStack(spacing: 6) {
                                 Image(systemName: "square.and.arrow.up")
                                 Text(langManager.currentLanguage == .chinese ? "分享" : "Share")
+                            }
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
+                        }
+                        
+                        // 复制按钮
+                        Button(action: {
+                            ShareManager.copyToClipboard("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)")
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "doc.on.doc")
+                                Text(langManager.currentLanguage == .chinese ? "复制" : "Copy")
                             }
                             .font(.system(size: 14, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
@@ -496,18 +517,29 @@ struct EditStickyNoteSheet: View {
                     .padding(.horizontal, 18)
                 }
                 
-                // 分享便签
-                ShareLink(
-                    item: "【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)",
-                    preview: SharePreview("便签: \(note.content.prefix(20))", image: Image(systemName: "note.text"))
-                ) {
+                // 分享便签 (原生兼容微信、WhatsApp 等)
+                Button(action: {
+                    ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)")
+                }) {
                     HStack {
                         Image(systemName: "square.and.arrow.up")
-                        Text(langManager.currentLanguage == .chinese ? "分享此便签" : "Share Note")
+                        Text(langManager.currentLanguage == .chinese ? "分享此便签 (微信/WhatsApp)" : "Share Note")
                     }
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(BentoColors.noteAmber)
                     .padding(.vertical, 4)
+                }
+                
+                Button(action: {
+                    ShareManager.copyToClipboard("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)")
+                }) {
+                    HStack {
+                        Image(systemName: "doc.on.doc")
+                        Text(langManager.currentLanguage == .chinese ? "复制便签文本" : "Copy Note Text")
+                    }
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 2)
                 }
                 
                 Button(role: .destructive, action: {
