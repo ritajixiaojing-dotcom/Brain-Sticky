@@ -88,7 +88,7 @@ fun OmniCaptureDialog(
                         placeholder = {
                             Text(
                                 if (lang == AppLanguage.CHINESE) "写下此刻的想法与日常碎碎念..." else "Write down thoughts & moments...",
-                                color = Color.Black.copy(alpha = 0.4f),
+                                color = BentoColors.colorForHex(selectedTextColorHex).copy(alpha = 0.55f),
                                 fontSize = 14.sp
                             )
                         },
@@ -133,12 +133,37 @@ fun OmniCaptureDialog(
                     }
                 }
 
-                // Font Colors Picker
-                Text(
-                    text = if (lang == AppLanguage.CHINESE) "字体颜色" else "Font Color",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
+                // Font Colors Picker (with real-time preview badge)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (lang == AppLanguage.CHINESE) "字体颜色" else "Font Color",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(BentoColors.colorForHex(selectedColorHex))
+                            .border(
+                                width = 1.dp,
+                                color = BentoColors.colorForHex(selectedTextColorHex).copy(alpha = 0.25f),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = if (lang == AppLanguage.CHINESE) "Aa 字体预览" else "Aa Preview",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BentoColors.colorForHex(selectedTextColorHex)
+                        )
+                    }
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

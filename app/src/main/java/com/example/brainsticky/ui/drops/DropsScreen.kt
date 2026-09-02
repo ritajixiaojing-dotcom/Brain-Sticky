@@ -519,7 +519,7 @@ fun EnlargedStickyNoteDialog(
                     // Font color palette row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -528,6 +528,25 @@ fun EnlargedStickyNoteDialog(
                             fontWeight = FontWeight.Medium,
                             color = Color.Black.copy(alpha = 0.6f)
                         )
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(BentoColors.colorForHex(editedHex))
+                                .border(
+                                    width = 1.dp,
+                                    color = BentoColors.colorForHex(editedTextColorHex).copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "Aa",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BentoColors.colorForHex(editedTextColorHex)
+                            )
+                        }
 
                         textColorOptions.forEach { hex ->
                             Box(
