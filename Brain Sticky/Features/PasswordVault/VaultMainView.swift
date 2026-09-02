@@ -50,14 +50,14 @@ public struct VaultMainView: View {
             }
             
             if store.vaultItems.isEmpty {
-                // MARK: - 屏幕中央大加号添加按钮 (Large Center Plus Button)
+                // MARK: - 屏幕中央精致添加卡片 (Compact Center Add Card)
                 Spacer()
                 
                 Button(action: {
                     isShowingAddSheet = true
                     HapticManager.shared.impact(.medium)
                 }) {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 12) {
                         ZStack {
                             Circle()
                                 .fill(
@@ -67,38 +67,36 @@ public struct VaultMainView: View {
                                         endPoint: .bottomTrailing
                                     )
                                 )
-                                .frame(width: 80, height: 80)
-                                .shadow(color: BentoColors.vaultViolet.opacity(0.35), radius: 14, x: 0, y: 7)
+                                .frame(width: 48, height: 48)
+                                .shadow(color: BentoColors.vaultViolet.opacity(0.25), radius: 8, x: 0, y: 4)
                             
                             Image(systemName: "plus")
-                                .font(.system(size: 38, weight: .bold))
+                                .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(.white)
                         }
                         
-                        VStack(spacing: 6) {
+                        VStack(spacing: 4) {
                             Text(langManager.currentLanguage == .chinese ? "新建钥匙与密码" : "Add New Password")
-                                .font(.system(size: 17, weight: .bold, design: .rounded))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .foregroundColor(.primary)
-                            Text(langManager.currentLanguage == .chinese ? "轻点中央大加号，安全记录您的账号与密码 ✨" : "Tap plus to securely store your passwords ✨")
-                                .font(.system(size: 13, design: .rounded))
+                            Text(langManager.currentLanguage == .chinese ? "安全记录您的账号与密码 ✨" : "Securely store your passwords ✨")
+                                .font(.system(size: 12, design: .rounded))
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
-                                .padding(.horizontal, 24)
                         }
                     }
-                    .padding(.vertical, 32)
+                    .padding(.vertical, 20)
                     .padding(.horizontal, 24)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: 240)
                     .background(Color.white.opacity(0.92))
-                    .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            .stroke(BentoColors.vaultViolet.opacity(0.25), lineWidth: 1.5)
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(BentoColors.vaultViolet.opacity(0.18), lineWidth: 1.2)
                     )
-                    .shadow(color: BentoColors.vaultViolet.opacity(0.12), radius: 16, x: 0, y: 6)
+                    .shadow(color: BentoColors.vaultViolet.opacity(0.08), radius: 10, x: 0, y: 4)
                 }
                 .buttonStyle(BouncyButtonStyle())
-                .padding(.horizontal, 28)
                 
                 Spacer()
             } else {

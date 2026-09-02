@@ -475,7 +475,7 @@ public struct CustomModuleDetailView: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 TextField(
-                    langManager.currentLanguage == .chinese ? "输入任何习惯目标 (如 练琴、早睡)..." : "Enter habit (e.g. Piano, Early sleep)...",
+                    langManager.currentLanguage == .chinese ? "输入任何习惯目标 (如 练琴、瑜伽)..." : "Enter habit (e.g. Piano, Yoga)...",
                     text: $newEntryTitle
                 )
                 .font(.system(size: 15, weight: .bold, design: .rounded))
