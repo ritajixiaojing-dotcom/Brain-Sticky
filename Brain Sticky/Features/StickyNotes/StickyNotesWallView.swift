@@ -463,6 +463,7 @@ struct EditStickyNoteSheet: View {
                 TextEditor(text: $note.content)
                     .font(.system(size: 16, weight: .medium, design: .rounded))
                     .foregroundColor(BentoColors.colorForHex(note.textColorHex ?? "#1E293B"))
+                    .id(note.textColorHex ?? "#1E293B")
                     .padding()
                     .frame(minHeight: 140)
                     .background(BentoColors.colorForHex(note.colorHex))
@@ -495,10 +496,27 @@ struct EditStickyNoteSheet: View {
                 
                 // 字体颜色
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(langManager.currentLanguage == .chinese ? "字体颜色" : "Font Color")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 18)
+                    HStack(spacing: 8) {
+                        Text(langManager.currentLanguage == .chinese ? "字体颜色" : "Font Color")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(.secondary)
+                        
+                        HStack(spacing: 4) {
+                            Text("Aa")
+                                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                            Text(langManager.currentLanguage == .chinese ? "字体预览" : "Preview")
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                        }
+                        .foregroundColor(BentoColors.colorForHex(note.textColorHex ?? "#1E293B"))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(BentoColors.colorForHex(note.colorHex))
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule().stroke(BentoColors.colorForHex(note.textColorHex ?? "#1E293B").opacity(0.25), lineWidth: 1)
+                        )
+                    }
+                    .padding(.horizontal, 18)
                     
                     HStack(spacing: 12) {
                         ForEach(textColorHexes, id: \.self) { hex in

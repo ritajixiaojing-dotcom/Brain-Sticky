@@ -49,14 +49,22 @@ public struct OmniCaptureView: View {
                     
                     // MARK: - 文本卡片 (支持回车换行多行自由编辑，秒速聚焦)
                     VStack(alignment: .leading, spacing: 14) {
-                        TextField(
-                            langManager.currentLanguage == .chinese ? "写下此刻的想法与日常碎碎念..." : "Write down thoughts & moments...",
-                            text: $contentText,
-                            axis: .vertical
-                        )
-                        .focused($isFocused)
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundColor(BentoColors.colorForHex(selectedTextColorHex))
+                        ZStack(alignment: .topLeading) {
+                            if contentText.isEmpty {
+                                Text(langManager.currentLanguage == .chinese ? "写下此刻的想法与日常碎碎念..." : "Write down thoughts & moments...")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundColor(BentoColors.colorForHex(selectedTextColorHex).opacity(0.55))
+                                    .padding(.top, 2)
+                                    .padding(.leading, 4)
+                                    .allowsHitTesting(false)
+                            }
+                            
+                            TextField("", text: $contentText, axis: .vertical)
+                                .focused($isFocused)
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(BentoColors.colorForHex(selectedTextColorHex))
+                                .id(selectedTextColorHex)
+                        }
                         .padding(14)
                         .frame(minHeight: 130, alignment: .topLeading)
                         .background(BentoColors.colorForHex(selectedColorHex))
@@ -88,11 +96,28 @@ public struct OmniCaptureView: View {
                             }
                         }
                         
-                        // 字体颜色点选
+                        // 字体颜色点选 (带实时字体颜色预览)
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(langManager.currentLanguage == .chinese ? "字体颜色" : "Font Color")
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundColor(.secondary)
+                            HStack(spacing: 8) {
+                                Text(langManager.currentLanguage == .chinese ? "字体颜色" : "Font Color")
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                    .foregroundColor(.secondary)
+                                
+                                HStack(spacing: 4) {
+                                    Text("Aa")
+                                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                                    Text(langManager.currentLanguage == .chinese ? "字体预览" : "Preview")
+                                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                                }
+                                .foregroundColor(BentoColors.colorForHex(selectedTextColorHex))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(BentoColors.colorForHex(selectedColorHex))
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule().stroke(BentoColors.colorForHex(selectedTextColorHex).opacity(0.25), lineWidth: 1)
+                                )
+                            }
                             
                             HStack(spacing: 12) {
                                 ForEach(textColorHexes, id: \.self) { hex in
