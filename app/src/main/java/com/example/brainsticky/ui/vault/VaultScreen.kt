@@ -115,23 +115,24 @@ fun VaultScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Card(
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
+                            .widthIn(max = 240.dp)
+                            .padding(horizontal = 20.dp)
                             .clickable { isShowingAddDialog = true }
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 32.dp, horizontal = 20.dp),
+                                .padding(vertical = 20.dp, horizontal = 18.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(76.dp)
+                                    .size(48.dp)
                                     .clip(androidx.compose.foundation.shape.CircleShape)
                                     .background(BentoColors.VaultViolet),
                                 contentAlignment = Alignment.Center
@@ -140,23 +141,23 @@ fun VaultScreen(
                                     Icons.Default.Add,
                                     contentDescription = "Add",
                                     tint = Color.White,
-                                    modifier = Modifier.size(38.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
 
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
                                     text = if (lang == AppLanguage.CHINESE) "新建钥匙与密码" else "Add New Password",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 17.sp,
+                                    fontSize = 15.sp,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = if (lang == AppLanguage.CHINESE) "轻点中央大加号，安全记录您的账号与密码 ✨" else "Tap plus to securely store your passwords ✨",
-                                    fontSize = 13.sp,
+                                    text = if (lang == AppLanguage.CHINESE) "安全记录您的账号与密码 ✨" else "Securely store your passwords ✨",
+                                    fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
