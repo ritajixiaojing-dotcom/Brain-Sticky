@@ -19,149 +19,47 @@ public struct VaultMainView: View {
     
     public var body: some View {
         VStack(spacing: 0) {
-            if !store.vaultItems.isEmpty {
-                // MARK: - 显眼快速新建密码栏 (仅在有记录时显示在顶部)
-                Button(action: {
-                    isShowingAddSheet = true
-                    HapticManager.shared.impact(.medium)
-                }) {
-                    HStack(spacing: 10) {
-                        Text("🔐")
-                            .font(.system(size: 16))
-                        Text(langManager.currentLanguage == .chinese ? "✨ 新建钥匙与密码账号..." : "✨ Add new secret or password...")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                            .foregroundColor(.primary.opacity(0.85))
-                        Spacer()
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(BentoColors.vaultViolet)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .background(Color.white)
-                    .contentShape(Rectangle())
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .shadow(color: BentoColors.vaultViolet.opacity(0.14), radius: 8, x: 0, y: 3)
+            // MARK: - 统一快速新建密码栏 (常驻置顶，与日常/待办/买菜保持统一优雅风格)
+            Button(action: {
+                isShowingAddSheet = true
+                HapticManager.shared.impact(.medium)
+            }) {
+                HStack(spacing: 10) {
+                    Text("🔐")
+                        .font(.system(size: 16))
+                    Text(langManager.currentLanguage == .chinese ? "✨ 新建钥匙与密码账号..." : "✨ Add new secret or password...")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(.primary.opacity(0.85))
+                    Spacer()
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(BentoColors.vaultViolet)
                 }
-                .buttonStyle(BouncyButtonStyle())
                 .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 6)
+                .padding(.vertical, 14)
+                .background(Color.white)
+                .contentShape(Rectangle())
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: BentoColors.vaultViolet.opacity(0.12), radius: 8, x: 0, y: 3)
             }
+            .buttonStyle(BouncyButtonStyle())
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 6)
             
-            if store.vaultItems.isEmpty {
-                // MARK: - 屏幕中央精致添加卡片 (Compact Center Add Card)
-                Spacer()
-                
-                Button(action: {
-                    isShowingAddSheet = true
-                    HapticManager.shared.impact(.medium)
-                }) {
-                    VStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [BentoColors.vaultViolet, BentoColors.omniElectric],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 48, height: 48)
-                                .shadow(color: BentoColors.vaultViolet.opacity(0.25), radius: 8, x: 0, y: 4)
-                            
-                            Image(systemName: "plus")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(.white)
-                        }
-                        
-                        VStack(spacing: 4) {
-                            Text(langManager.currentLanguage == .chinese ? "新建钥匙与密码" : "Add New Password")
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
-                                .foregroundColor(.primary)
-                            Text(langManager.currentLanguage == .chinese ? "安全记录您的账号与密码 ✨" : "Securely store your passwords ✨")
-                                .font(.system(size: 12, design: .rounded))
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-                    .padding(.vertical, 20)
-                    .padding(.horizontal, 24)
-                    .frame(maxWidth: 240)
-                    .background(Color.white.opacity(0.92))
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(BentoColors.vaultViolet.opacity(0.18), lineWidth: 1.2)
-                    )
-                    .shadow(color: BentoColors.vaultViolet.opacity(0.08), radius: 10, x: 0, y: 4)
-                }
-                .buttonStyle(BouncyButtonStyle())
-                
-                Spacer()
-            } else {
-                List {
+            List {
+                if store.vaultItems.isEmpty {
+                    emptyStateView
+                } else {
                     ForEach(store.vaultItems) { item in
-                        VaultItemCardRow(
-                            item: item,
-                            onCopy: { text in
-                                UIPasteboard.general.string = text
-                                showToast(langManager.currentLanguage == .chinese ? "已复制" : "Copied")
-                                HapticManager.shared.notification(.success)
-                            },
-                            onEdit: {
-                                editingItem = item
-                            },
-                            onLargeDisplay: {
-                                largeDisplayItem = item
-                            }
-                        )
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                itemToDelete = item
-                            } label: {
-                                Label(langManager.currentLanguage == .chinese ? "删除" : "Delete", systemImage: "trash")
-                            }
-                        }
-                        .swipeActions(edge: .leading) {
-                            Button {
-                                editingItem = item
-                            } label: {
-                                Label(langManager.currentLanguage == .chinese ? "修改" : "Edit", systemImage: "pencil")
-                            }
-                            .tint(BentoColors.vaultViolet)
-                        }
-                        .contextMenu {
-                            Button(action: {
-                                UIPasteboard.general.string = item.secretValue
-                                showToast(langManager.currentLanguage == .chinese ? "已复制" : "Copied")
-                                HapticManager.shared.notification(.success)
-                            }) {
-                                Label(langManager.currentLanguage == .chinese ? "复制密码" : "Copy Password", systemImage: "doc.on.doc")
-                            }
-                            
-                            Button(action: {
-                                editingItem = item
-                            }) {
-                                Label(langManager.currentLanguage == .chinese ? "修改" : "Edit", systemImage: "pencil")
-                            }
-                            
-                            Button(role: .destructive, action: {
-                                itemToDelete = item
-                            }) {
-                                Label(langManager.currentLanguage == .chinese ? "删除" : "Delete", systemImage: "trash")
-                            }
-                        }
+                        vaultRow(for: item)
                     }
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .scrollDismissesKeyboard(.interactively)
-                .dismissKeyboardOnTap()
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+            .dismissKeyboardOnTap()
         }
         .dismissKeyboardOnTap()
         .background(BentoColors.bgPrimary.ignoresSafeArea())
@@ -211,6 +109,97 @@ public struct VaultMainView: View {
         }
         .sheet(item: $largeDisplayItem) { item in
             VaultLargeDisplaySheet(item: item)
+        }
+    }
+    
+    @ViewBuilder
+    private func vaultRow(for item: VaultItem) -> some View {
+        VaultItemCardRow(
+            item: item,
+            onCopy: { text in
+                UIPasteboard.general.string = text
+                showToast(langManager.currentLanguage == .chinese ? "已复制" : "Copied")
+                HapticManager.shared.notification(.success)
+            },
+            onEdit: {
+                editingItem = item
+            },
+            onLargeDisplay: {
+                largeDisplayItem = item
+            }
+        )
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                itemToDelete = item
+            } label: {
+                Label(langManager.currentLanguage == .chinese ? "删除" : "Delete", systemImage: "trash")
+            }
+        }
+        .swipeActions(edge: .leading) {
+            Button {
+                editingItem = item
+            } label: {
+                Label(langManager.currentLanguage == .chinese ? "修改" : "Edit", systemImage: "pencil")
+            }
+            .tint(BentoColors.vaultViolet)
+        }
+        .contextMenu {
+            vaultRowContextMenu(for: item)
+        }
+    }
+    
+    @ViewBuilder
+    private var emptyStateView: some View {
+        Button(action: {
+            isShowingAddSheet = true
+            HapticManager.shared.impact(.light)
+        }) {
+            VStack(spacing: 14) {
+                Image(systemName: "lock.shield")
+                    .font(.system(size: 42))
+                    .foregroundColor(BentoColors.vaultViolet.opacity(0.65))
+                    .padding(.top, 60)
+                
+                Text(langManager.currentLanguage == .chinese ? "钥匙密码已妥善安放 🔒" : "All Passwords Secured 🔒")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary.opacity(0.8))
+                
+                Text(langManager.currentLanguage == .chinese ? "轻点上方栏目，安全记录您的账号与密码 ✨" : "Tap the bar above to add a password ✨")
+                    .font(.system(size: 13, design: .rounded))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+    }
+    
+    @ViewBuilder
+    private func vaultRowContextMenu(for item: VaultItem) -> some View {
+        Button(action: {
+            UIPasteboard.general.string = item.secretValue
+            showToast(langManager.currentLanguage == .chinese ? "已复制" : "Copied")
+            HapticManager.shared.notification(.success)
+        }) {
+            Label(langManager.currentLanguage == .chinese ? "复制密码" : "Copy Password", systemImage: "doc.on.doc")
+        }
+        
+        Button(action: {
+            editingItem = item
+        }) {
+            Label(langManager.currentLanguage == .chinese ? "修改" : "Edit", systemImage: "pencil")
+        }
+        
+        Button(role: .destructive, action: {
+            itemToDelete = item
+        }) {
+            Label(langManager.currentLanguage == .chinese ? "删除" : "Delete", systemImage: "trash")
         }
     }
     
