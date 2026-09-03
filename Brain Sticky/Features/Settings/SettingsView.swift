@@ -97,7 +97,7 @@ public struct SettingsView: View {
                         Text(langManager.localized(.version))
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                         Spacer()
-                        Text("1.2.2 (Build 1)")
+                        Text("1.2.3 (Build 1)")
                             .font(.system(size: 13, design: .rounded))
                             .foregroundColor(.secondary)
                     }
