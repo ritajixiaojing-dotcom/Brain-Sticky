@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 public struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -17,6 +18,7 @@ public struct SettingsView: View {
     @AppStorage("enableTimerVibration") private var enableTimerVibration: Bool = true
     @AppStorage("autoLockVaultOnBackground") private var autoLockOnBackground: Bool = true
     @State private var isShowingResetAlert: Bool = false
+    @State private var notificationStatus: UNAuthorizationStatus = .authorized
     
     public var body: some View {
         NavigationStack {
@@ -32,43 +34,50 @@ public struct SettingsView: View {
                     .listRowInsets(EdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14))
                 }
                 
-                // MARK: - 触感与到期提醒反馈 (Haptics & Timer Alerts)
-                Section(header: Text(langManager.currentLanguage == .chinese ? "触感与到期提醒" : "Haptics & Timer Alerts").font(.system(size: 11, weight: .bold, design: .rounded))) {
-                    Toggle(isOn: $enableHaptics) {
-                        HStack {
-                            Image(systemName: "hand.tap.fill")
-                                .foregroundColor(BentoColors.noteAmber)
-                            Text(langManager.localized(.hapticsFeedback))
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                // MARK: - 触感与到期震动提醒 (单开关极简设计)
+                Section(header: Text(langManager.currentLanguage == .chinese ? "触感与到期提醒" : "Haptics & Alerts").font(.system(size: 11, weight: .bold, design: .rounded))) {
+                    Toggle(isOn: Binding(
+                        get: { enableHaptics },
+                        set: { newVal in
+                            enableHaptics = newVal
+                            enableTimerVibration = newVal
                         }
-                    }
-                    
-                    Toggle(isOn: $enableTimerVibration) {
-                        HStack {
+                    )) {
+                        HStack(spacing: 10) {
                             Image(systemName: "iphone.radiowaves.left.and.right")
                                 .foregroundColor(BentoColors.urgentCoral)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(langManager.currentLanguage == .chinese ? "待办时间到期强力震动" : "Todo Timer Alarm Vibration")
+                                Text(langManager.currentLanguage == .chinese ? "触感与到期震动提醒" : "Haptics & Timer Vibration")
                                     .font(.system(size: 14, weight: .medium, design: .rounded))
-                                Text(langManager.currentLanguage == .chinese ? "时间到了以后多波持续震动提醒，防止漏看" : "Vibrate strongly when reminder time is reached")
+                                Text(langManager.currentLanguage == .chinese ? "包含按键触觉反馈与待办定时到期震动报警" : "Includes button tap feedback and timer alert vibration")
                                     .font(.system(size: 11, design: .rounded))
                                     .foregroundColor(.secondary)
                             }
                         }
                     }
                     
-                    Button(action: {
-                        NotificationManager.triggerAlarmVibration()
-                    }) {
-                        HStack {
-                            Image(systemName: "bell.and.waves.left.and.right.fill")
-                                .foregroundColor(BentoColors.omniElectric)
-                            Text(langManager.currentLanguage == .chinese ? "测试到期震动效果" : "Test Timer Vibration")
-                                .font(.system(size: 14, weight: .medium, design: .rounded))
-                            Spacer()
-                            Text(langManager.currentLanguage == .chinese ? "轻触感受 📳" : "Tap to feel 📳")
-                                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                .foregroundColor(BentoColors.urgentCoral)
+                    if notificationStatus == .denied {
+                        Button(action: {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(langManager.currentLanguage == .chinese ? "系统通知权限未开启" : "Notifications Disabled")
+                                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                        .foregroundColor(.orange)
+                                    Text(langManager.currentLanguage == .chinese ? "轻点前往系统设置开启，否则时间到了无法收到通知" : "Tap to enable in Settings to receive alerts")
+                                        .font(.system(size: 11, design: .rounded))
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                 }
@@ -121,6 +130,13 @@ public struct SettingsView: View {
                     },
                     secondaryButton: .cancel(Text(langManager.localized(.cancel)))
                 )
+            }
+            .onAppear {
+                UNUserNotificationCenter.current().getNotificationSettings { settings in
+                    DispatchQueue.main.async {
+                        self.notificationStatus = settings.authorizationStatus
+                    }
+                }
             }
         }
     }

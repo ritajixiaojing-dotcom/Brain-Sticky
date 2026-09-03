@@ -176,19 +176,6 @@ public struct TodoListView: View {
                         .clipShape(Capsule())
                     }
                 }
-                
-                // 震动提示：选定时间后明确告知用户时间到了会开启震动
-                if quickMinutes != nil {
-                    HStack(spacing: 4) {
-                        Image(systemName: "iphone.radiowaves.left.and.right")
-                            .font(.system(size: 11))
-                        Text(langManager.currentLanguage == .chinese ? "已设 \(quickMinutes ?? 0) 分钟定时 · 时间到了将强力震动提醒" : "Timer set to \(quickMinutes ?? 0)m · Phone will vibrate when time is up")
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                    }
-                    .foregroundColor(BentoColors.urgentCoral)
-                    .padding(.top, 2)
-                    .transition(.opacity)
-                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 6)
@@ -353,7 +340,7 @@ struct TodoItemRow: View {
             
             // ⚡ 帮我办 / 分享给别人 (支持微信 / WhatsApp)
             Button(action: {
-                ShareManager.shareText("⚡【请你帮我办件事】\n\(item.title)\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)")
+                ShareManager.shareText("⚡【请你帮我办件事】\n\(item.title)\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)", title: "⚡ 帮我办待办事项")
             }) {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 13, weight: .semibold))
@@ -514,17 +501,6 @@ struct AddTodoSheet: View {
                                     .bouncyTap(scale: 0.96)
                                 }
                                 .padding(.vertical, 2)
-                            }
-                            
-                            if reminderMinutes != nil {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "iphone.radiowaves.left.and.right")
-                                        .font(.system(size: 11))
-                                    Text(langManager.currentLanguage == .chinese ? "已设定时 · 时间到了系统将推送通知并开启多波强力震动提示" : "Timer active · Phone will alert and vibrate when time is up")
-                                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                                }
-                                .foregroundColor(BentoColors.urgentCoral)
-                                .padding(.top, 2)
                             }
                         }
                     }
@@ -748,17 +724,6 @@ struct EditTodoSheet: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             }
                         }
-                        
-                        if item.reminderMinutes != nil {
-                            HStack(spacing: 4) {
-                                Image(systemName: "iphone.radiowaves.left.and.right")
-                                    .font(.system(size: 11))
-                                Text(langManager.currentLanguage == .chinese ? "时间到了将通过系统通知与强力震动提示" : "Will alert with notifications and strong vibration")
-                                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                            }
-                            .foregroundColor(BentoColors.urgentCoral)
-                            .padding(.top, 2)
-                        }
                     }
                     .padding(14)
                     .background(BentoColors.bgSecondary)
@@ -766,7 +731,7 @@ struct EditTodoSheet: View {
                     
                     // 分享托付按钮 (支持微信、WhatsApp 等)
                     Button(action: {
-                        ShareManager.shareText("⚡【请你帮我办件事】\n\(item.title)\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)")
+                        ShareManager.shareText("⚡【请你帮我办件事】\n\(item.title)\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)", title: "⚡ 帮我办待办事项")
                     }) {
                         HStack {
                             Spacer()

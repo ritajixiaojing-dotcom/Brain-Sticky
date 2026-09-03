@@ -307,8 +307,86 @@ public final class ShareManager {
     public static let shared = ShareManager()
     private init() {}
     
-    /// 触发原生系统分享面板（以纯文本形式发送，完美解决微信和 WhatsApp 点击下一步卡死问题）
-    public static func shareText(_ text: String) {
+    /// 生成精美图文分享卡片（支持微信、朋友圈、相册等无缝接收）
+    public static func generateCardImage(text: String, title: String = "脑雾收集站 · 便签") -> UIImage {
+        let width: CGFloat = 380
+        let padding: CGFloat = 24
+        let contentWidth = width - padding * 2
+        
+        let titleFont = UIFont.systemFont(ofSize: 15, weight: .bold)
+        let bodyFont = UIFont.systemFont(ofSize: 15, weight: .regular)
+        let footerFont = UIFont.systemFont(ofSize: 12, weight: .medium)
+        
+        let titleAttrs: [NSAttributedString.Key: Any] = [
+            .font: titleFont,
+            .foregroundColor: UIColor(red: 60/255, green: 60/255, blue: 70/255, alpha: 1.0)
+        ]
+        
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = 6
+        let bodyAttrs: [NSAttributedString.Key: Any] = [
+            .font: bodyFont,
+            .foregroundColor: UIColor(red: 30/255, green: 30/255, blue: 40/255, alpha: 1.0),
+            .paragraphStyle: paragraphStyle
+        ]
+        
+        let footerAttrs: [NSAttributedString.Key: Any] = [
+            .font: footerFont,
+            .foregroundColor: UIColor(red: 140/255, green: 140/255, blue: 155/255, alpha: 1.0)
+        ]
+        
+        let bodyHeight = (text as NSString).boundingRect(
+            with: CGSize(width: contentWidth, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: bodyAttrs,
+            context: nil
+        ).height
+        
+        let height: CGFloat = max(180, padding + 26 + 16 + bodyHeight + 20 + 20 + padding)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 3.0 // Retina 高清输出
+        
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format)
+        return renderer.image { _ in
+            let rect = CGRect(origin: .zero, size: CGSize(width: width, height: height))
+            
+            // 温暖质感圆角底卡
+            let bgPath = UIBezierPath(roundedRect: rect, cornerRadius: 24)
+            UIColor(red: 254/255, green: 253/255, blue: 250/255, alpha: 1.0).setFill()
+            bgPath.fill()
+            
+            // 细致微描边
+            let borderPath = UIBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 1), cornerRadius: 23)
+            UIColor(red: 230/255, green: 226/255, blue: 218/255, alpha: 0.8).setStroke()
+            borderPath.lineWidth = 1.2
+            borderPath.stroke()
+            
+            // 顶部小标
+            let headerRect = CGRect(x: padding, y: padding, width: contentWidth, height: 22)
+            (title as NSString).draw(in: headerRect, withAttributes: titleAttrs)
+            
+            // 正文内容
+            let bodyRect = CGRect(x: padding, y: padding + 32, width: contentWidth, height: bodyHeight + 8)
+            (text as NSString).draw(in: bodyRect, withAttributes: bodyAttrs)
+            
+            // 分隔线
+            let dividerY = height - padding - 22
+            let dividerPath = UIBezierPath()
+            dividerPath.move(to: CGPoint(x: padding, y: dividerY))
+            dividerPath.addLine(to: CGPoint(x: width - padding, y: dividerY))
+            UIColor(red: 225/255, green: 222/255, blue: 215/255, alpha: 0.6).setStroke()
+            dividerPath.lineWidth = 0.8
+            dividerPath.stroke()
+            
+            // 底部外脑署名
+            let footerText = "💡 脑雾收集站 (Brain Sticky) · 你的贴身外脑"
+            let footerRect = CGRect(x: padding, y: height - padding - 16, width: contentWidth, height: 18)
+            (footerText as NSString).draw(in: footerRect, withAttributes: footerAttrs)
+        }
+    }
+    
+    /// 触发智能分享面板（支持微信好友粘贴/微信卡片/系统更多分享）
+    public static func shareText(_ text: String, title: String = "脑雾收集站") {
         guard let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
         
@@ -317,16 +395,58 @@ public final class ShareManager {
             topController = presented
         }
         
-        let activityVC = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+        // 自动将纯文本提前复制到剪贴板，方便用户在任何地方随时粘贴
+        UIPasteboard.general.string = text
         
-        // 适配 iPad 弹窗，防止崩溃
-        if let popover = activityVC.popoverPresentationController {
-            popover.sourceView = topController.view
-            popover.sourceRect = CGRect(x: topController.view.bounds.midX, y: topController.view.bounds.midY, width: 0, height: 0)
-            popover.permittedArrowDirections = []
+        let wechatURL = URL(string: "weixin://")
+        let canOpenWeChat = wechatURL != nil && UIApplication.shared.canOpenURL(wechatURL!)
+        let cardImage = generateCardImage(text: text, title: title)
+        
+        let presentActivityVC = { (items: [Any]) in
+            let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
+            if let popover = activityVC.popoverPresentationController {
+                popover.sourceView = topController.view
+                popover.sourceRect = CGRect(x: topController.view.bounds.midX, y: topController.view.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            topController.present(activityVC, animated: true)
         }
         
-        topController.present(activityVC, animated: true)
+        // 若安装了微信，弹出贴心且功能明确的动作菜单
+        if canOpenWeChat {
+            let alert = UIAlertController(title: "分享便签 / 待办", message: "文字已自动复制到剪贴板", preferredStyle: .actionSheet)
+            
+            // 选项 1：直接打开微信粘贴发送
+            alert.addAction(UIAlertAction(title: "💬 打开微信发给朋友 (去微信粘贴)", style: .default) { _ in
+                HapticManager.shared.notification(.success)
+                if let url = wechatURL {
+                    UIApplication.shared.open(url)
+                }
+            })
+            
+            // 选项 2：发送精美卡片图（通过微信发送图片，微信系统扩展完全支持图片）
+            alert.addAction(UIAlertAction(title: "🖼️ 发送精美图文卡片 (支持微信/朋友圈)", style: .default) { _ in
+                presentActivityVC([cardImage, text])
+            })
+            
+            // 选项 3：系统更多分享
+            alert.addAction(UIAlertAction(title: "📤 系统更多分享 (信息/隔空投送/备忘录...)", style: .default) { _ in
+                presentActivityVC([cardImage, text])
+            })
+            
+            // 取消
+            alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+            
+            if let popover = alert.popoverPresentationController {
+                popover.sourceView = topController.view
+                popover.sourceRect = CGRect(x: topController.view.bounds.midX, y: topController.view.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            topController.present(alert, animated: true)
+        } else {
+            // 未安装微信时，直接调起带图文的原生分享面板
+            presentActivityVC([cardImage, text])
+        }
     }
     
     /// 复制到剪贴板，提供触感反馈

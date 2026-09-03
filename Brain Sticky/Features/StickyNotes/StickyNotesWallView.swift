@@ -101,7 +101,7 @@ public struct StickyNotesWallView: View {
                                 }
                                 .contextMenu {
                                     Button(action: {
-                                        ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)")
+                                        ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)", title: "\(note.moodEmoji) 日常便签")
                                     }) {
                                         Label(langManager.currentLanguage == .chinese ? "分享便签 (微信/WhatsApp)" : "Share Note", systemImage: "square.and.arrow.up")
                                     }
@@ -370,7 +370,7 @@ struct EnlargedStickyNoteViewerSheet: View {
                         
                         // 分享按钮 (支持微信、WhatsApp 等)
                         Button(action: {
-                            ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)")
+                            ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)", title: "\(note.moodEmoji) 日常便签")
                         }) {
                             HStack(spacing: 6) {
                                 Image(systemName: "square.and.arrow.up")
@@ -537,7 +537,7 @@ struct EditStickyNoteSheet: View {
                 
                 // 分享便签 (原生兼容微信、WhatsApp 等)
                 Button(action: {
-                    ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)")
+                    ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)", title: "\(note.moodEmoji) 日常便签")
                 }) {
                     HStack {
                         Image(systemName: "square.and.arrow.up")
