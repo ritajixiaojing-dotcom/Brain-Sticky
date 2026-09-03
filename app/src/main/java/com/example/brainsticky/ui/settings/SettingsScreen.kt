@@ -11,7 +11,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,7 +34,6 @@ fun SettingsScreen(
 ) {
     val lang = dataStore.language
     val context = LocalContext.current
-    var isShowingResetDialog by remember { mutableStateOf(false) }
     var isShowingClearDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -151,25 +149,6 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable { isShowingResetDialog = true }
-                                .padding(vertical = 8.dp, horizontal = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, tint = BentoColors.OmniElectric)
-                            Text(
-                                text = if (lang == AppLanguage.CHINESE) "重置演示模板与示例卡片" else "Reset demo cards & templates",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
                                 .clickable { isShowingClearDialog = true }
                                 .padding(vertical = 8.dp, horizontal = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -231,30 +210,6 @@ fun SettingsScreen(
                 }
             }
         }
-    }
-
-    if (isShowingResetDialog) {
-        AlertDialog(
-            onDismissRequest = { isShowingResetDialog = false },
-            title = { Text(if (lang == AppLanguage.CHINESE) "重置示例数据？" else "Reset to sample data?") },
-            text = { Text(if (lang == AppLanguage.CHINESE) "将恢复内置的演示待办、便签、买菜与心愿单。" else "This will reload the initial demo data.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        dataStore.seedSampleData()
-                        isShowingResetDialog = false
-                        Toast.makeText(context, if (lang == AppLanguage.CHINESE) "已重置示例数据 ✨" else "Reset completed ✨", Toast.LENGTH_SHORT).show()
-                    }
-                ) {
-                    Text(if (lang == AppLanguage.CHINESE) "确认重置" else "Reset")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { isShowingResetDialog = false }) {
-                    Text(if (lang == AppLanguage.CHINESE) "取消" else "Cancel")
-                }
-            }
-        )
     }
 
     if (isShowingClearDialog) {
