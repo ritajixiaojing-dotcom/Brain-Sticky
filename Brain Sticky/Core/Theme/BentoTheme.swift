@@ -385,67 +385,34 @@ public final class ShareManager {
         }
     }
     
-    /// 触发智能分享面板（支持微信好友粘贴/微信卡片/系统更多分享）
+    /// 触发一键直达微信分享：毫秒级复制文本到剪贴板，并一键直接跳转打开微信，聊天框长按即可粘贴发出
     public static func shareText(_ text: String, title: String = "脑雾收集站") {
-        guard let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
-        
-        var topController = rootVC
-        while let presented = topController.presentedViewController {
-            topController = presented
-        }
-        
-        // 自动将纯文本提前复制到剪贴板，方便用户在任何地方随时粘贴
+        // 1. 毫秒级自动复制到系统剪贴板
         UIPasteboard.general.string = text
+        HapticManager.shared.notification(.success)
         
         let wechatURL = URL(string: "weixin://")
-        let canOpenWeChat = wechatURL != nil && UIApplication.shared.canOpenURL(wechatURL!)
-        let cardImage = generateCardImage(text: text, title: title)
-        
-        let presentActivityVC = { (items: [Any]) in
-            let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        if let url = wechatURL, UIApplication.shared.canOpenURL(url) {
+            // 2. 检测到微信：一键直接跳转打开微信！
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        } else {
+            // 3. 未安装微信（如模拟器或未装微信）时：降级唤起系统原生分享面板
+            guard let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
+            
+            var topController = rootVC
+            while let presented = topController.presentedViewController {
+                topController = presented
+            }
+            
+            let cardImage = generateCardImage(text: text, title: title)
+            let activityVC = UIActivityViewController(activityItems: [text, cardImage], applicationActivities: nil)
             if let popover = activityVC.popoverPresentationController {
                 popover.sourceView = topController.view
                 popover.sourceRect = CGRect(x: topController.view.bounds.midX, y: topController.view.bounds.midY, width: 0, height: 0)
                 popover.permittedArrowDirections = []
             }
             topController.present(activityVC, animated: true)
-        }
-        
-        // 若安装了微信，弹出贴心且功能明确的动作菜单
-        if canOpenWeChat {
-            let alert = UIAlertController(title: "分享便签 / 待办", message: "文字已自动复制到剪贴板", preferredStyle: .actionSheet)
-            
-            // 选项 1：直接打开微信粘贴发送
-            alert.addAction(UIAlertAction(title: "💬 打开微信发给朋友 (去微信粘贴)", style: .default) { _ in
-                HapticManager.shared.notification(.success)
-                if let url = wechatURL {
-                    UIApplication.shared.open(url)
-                }
-            })
-            
-            // 选项 2：发送精美卡片图（通过微信发送图片，微信系统扩展完全支持图片）
-            alert.addAction(UIAlertAction(title: "🖼️ 发送精美图文卡片 (支持微信/朋友圈)", style: .default) { _ in
-                presentActivityVC([cardImage, text])
-            })
-            
-            // 选项 3：系统更多分享
-            alert.addAction(UIAlertAction(title: "📤 系统更多分享 (信息/隔空投送/备忘录...)", style: .default) { _ in
-                presentActivityVC([cardImage, text])
-            })
-            
-            // 取消
-            alert.addAction(UIAlertAction(title: "取消", style: .cancel))
-            
-            if let popover = alert.popoverPresentationController {
-                popover.sourceView = topController.view
-                popover.sourceRect = CGRect(x: topController.view.bounds.midX, y: topController.view.bounds.midY, width: 0, height: 0)
-                popover.permittedArrowDirections = []
-            }
-            topController.present(alert, animated: true)
-        } else {
-            // 未安装微信时，直接调起带图文的原生分享面板
-            presentActivityVC([cardImage, text])
         }
     }
     

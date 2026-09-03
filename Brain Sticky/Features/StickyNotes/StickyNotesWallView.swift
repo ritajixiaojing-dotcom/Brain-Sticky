@@ -103,7 +103,7 @@ public struct StickyNotesWallView: View {
                                     Button(action: {
                                         ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)", title: "\(note.moodEmoji) 日常便签")
                                     }) {
-                                        Label(langManager.currentLanguage == .chinese ? "分享便签 (微信/WhatsApp)" : "Share Note", systemImage: "square.and.arrow.up")
+                                        Label(langManager.currentLanguage == .chinese ? "微信发给朋友" : "Share to WeChat", systemImage: "arrow.up.forward.app")
                                     }
                                     
                                     Button(action: {
@@ -373,8 +373,8 @@ struct EnlargedStickyNoteViewerSheet: View {
                             ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)", title: "\(note.moodEmoji) 日常便签")
                         }) {
                             HStack(spacing: 6) {
-                                Image(systemName: "square.and.arrow.up")
-                                Text(langManager.currentLanguage == .chinese ? "分享" : "Share")
+                                Image(systemName: "arrow.up.forward.app")
+                                Text(langManager.currentLanguage == .chinese ? "微信发给朋友" : "Share to WeChat")
                             }
                             .font(.system(size: 14, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
@@ -540,8 +540,8 @@ struct EditStickyNoteSheet: View {
                     ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)", title: "\(note.moodEmoji) 日常便签")
                 }) {
                     HStack {
-                        Image(systemName: "square.and.arrow.up")
-                        Text(langManager.currentLanguage == .chinese ? "分享此便签 (微信/WhatsApp)" : "Share Note")
+                        Image(systemName: "arrow.up.forward.app")
+                        Text(langManager.currentLanguage == .chinese ? "微信发给朋友" : "Share to WeChat")
                     }
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(BentoColors.noteAmber)
