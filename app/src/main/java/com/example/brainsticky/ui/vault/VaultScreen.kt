@@ -71,97 +71,74 @@ fun VaultScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (dataStore.vaultItems.isNotEmpty()) {
-                // Central Add Input Bar (与日常/待办/买菜统一风格)
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            // 统一快速新建密码栏 (常驻置顶，与日常/待办/买菜保持统一优雅风格)
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isShowingAddDialog = true }
+            ) {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { isShowingAddDialog = true }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Text(text = "🔐", fontSize = 18.sp)
-                            Text(
-                                text = if (lang == AppLanguage.CHINESE) "✨ 新建钥匙与密码账号..." else "✨ Add new secret or password...",
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = "Add",
-                            tint = BentoColors.VaultViolet,
-                            modifier = Modifier.size(20.dp)
+                        Text(text = "🔐", fontSize = 18.sp)
+                        Text(
+                            text = if (lang == AppLanguage.CHINESE) "✨ 新建钥匙与密码账号..." else "✨ Add new secret or password...",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add",
+                        tint = BentoColors.VaultViolet,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
             if (dataStore.vaultItems.isEmpty()) {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable { isShowingAddDialog = true },
                     contentAlignment = Alignment.Center
                 ) {
-                    Card(
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        modifier = Modifier
-                            .widthIn(max = 240.dp)
-                            .padding(horizontal = 20.dp)
-                            .clickable { isShowingAddDialog = true }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.padding(bottom = 60.dp)
                     ) {
+                        Text(
+                            text = "🔒",
+                            fontSize = 42.sp
+                        )
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 20.dp, horizontal = 18.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(androidx.compose.foundation.shape.CircleShape)
-                                    .background(BentoColors.VaultViolet),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = "Add",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = if (lang == AppLanguage.CHINESE) "新建钥匙与密码" else "Add New Password",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = if (lang == AppLanguage.CHINESE) "安全记录您的账号与密码 ✨" else "Securely store your passwords ✨",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
-                            }
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "钥匙密码已妥善安放 🔒" else "All Passwords Secured 🔒",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+                            )
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "轻点上方栏目，安全记录您的账号与密码 ✨" else "Tap the bar above to add a password ✨",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
                         }
                     }
                 }
