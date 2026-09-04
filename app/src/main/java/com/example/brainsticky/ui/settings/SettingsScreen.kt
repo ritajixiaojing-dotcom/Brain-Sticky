@@ -100,10 +100,10 @@ fun SettingsScreen(
                 }
             }
 
-            // Haptics (触觉震动) Section
+            // Haptics & Alerts (触感与到期提醒) Section
             item {
                 SettingsSectionCard(
-                    title = if (lang == AppLanguage.CHINESE) "触觉震动" else "Haptics"
+                    title = if (lang == AppLanguage.CHINESE) "触感与到期提醒" else "Haptics & Alerts"
                 ) {
                     Row(
                         modifier = Modifier
@@ -114,25 +114,33 @@ fun SettingsScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.weight(1f, fill = false)
                         ) {
                             Icon(
                                 Icons.Default.TouchApp,
                                 contentDescription = null,
-                                tint = BentoColors.NoteAmber
+                                tint = BentoColors.UrgentCoral
                             )
-                            Text(
-                                if (lang == AppLanguage.CHINESE) "触觉震动 (Haptics)" else "Haptic Vibration (Haptics)",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    if (lang == AppLanguage.CHINESE) "触感与到期震动提醒" else "Haptics & Timer Vibration",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    if (lang == AppLanguage.CHINESE) "包含按键触觉反馈与待办定时到期震动报警" else "Includes button tap feedback and timer alert vibration",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
                         }
                         Switch(
                             checked = dataStore.enableHaptics,
                             onCheckedChange = { dataStore.setHapticsEnabled(it) },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
-                                checkedTrackColor = BentoColors.NoteAmber
+                                checkedTrackColor = BentoColors.UrgentCoral
                             )
                         )
                     }

@@ -159,6 +159,7 @@ fun TodoScreen(
 
                     val timeOptions = listOf(
                         Pair(null, if (lang == AppLanguage.CHINESE) "无提醒" else "None"),
+                        Pair(5, if (lang == AppLanguage.CHINESE) "5 分钟" else "5m"),
                         Pair(15, if (lang == AppLanguage.CHINESE) "15 分钟" else "15m"),
                         Pair(30, if (lang == AppLanguage.CHINESE) "30 分钟" else "30m"),
                         Pair(60, if (lang == AppLanguage.CHINESE) "1 小时" else "1h"),
@@ -250,18 +251,11 @@ fun TodoScreen(
                                 onToggle = { dataStore.toggleTodo(item.id) },
                                 onEdit = { todoToEdit = item },
                                 onDelegate = {
-                                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(
-                                            Intent.EXTRA_TEXT,
-                                            "⚡【请你帮我办件事】\n${item.title}\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)"
-                                        )
-                                    }
-                                    val shareChooser = Intent.createChooser(
-                                        sendIntent,
-                                        if (lang == AppLanguage.CHINESE) "请人帮办" else "Delegate Todo"
+                                    com.example.brainsticky.util.ShareHelper.shareText(
+                                        context = context,
+                                        text = "⚡【请你帮我办件事】\n${item.title}\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)",
+                                        title = if (lang == AppLanguage.CHINESE) "⚡ 微信发给朋友帮办" else "Delegate Todo"
                                     )
-                                    context.startActivity(shareChooser)
                                 },
                                 onDelete = { todoToDelete = item }
                             )
@@ -532,6 +526,7 @@ fun TodoCardRow(
 
                     if (item.reminderMinutes != null) {
                         val timeLabel = when (item.reminderMinutes) {
+                            5 -> if (lang == AppLanguage.CHINESE) "5分钟" else "5m"
                             15 -> if (lang == AppLanguage.CHINESE) "15分钟" else "15m"
                             30 -> if (lang == AppLanguage.CHINESE) "30分钟" else "30m"
                             60 -> if (lang == AppLanguage.CHINESE) "1小时" else "1h"

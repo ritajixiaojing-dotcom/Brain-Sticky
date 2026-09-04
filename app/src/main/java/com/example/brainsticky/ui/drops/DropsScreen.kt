@@ -152,18 +152,11 @@ fun DropsScreen(
                                 lang = lang,
                                 onCardClick = { selectedNoteForEnlarge = note },
                                 onShare = {
-                                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(
-                                            Intent.EXTRA_TEXT,
-                                            "【脑雾收集站 · 日常便签】\n${note.moodEmoji} ${note.content}\n— 记录于 脑雾收集站 (Brain Sticky)"
-                                        )
-                                    }
-                                    val shareChooser = Intent.createChooser(
-                                        sendIntent,
-                                        if (lang == AppLanguage.CHINESE) "分享便签" else "Share Note"
+                                    com.example.brainsticky.util.ShareHelper.shareText(
+                                        context = context,
+                                        text = "【脑雾收集站 · 日常便签】\n${note.moodEmoji} ${note.content}\n— 记录于 脑雾收集站 (Brain Sticky)",
+                                        title = if (lang == AppLanguage.CHINESE) "微信发给朋友" else "Share Note"
                                     )
-                                    context.startActivity(shareChooser)
                                 },
                                 onDelete = { noteToDelete = note }
                             )
@@ -189,18 +182,11 @@ fun DropsScreen(
                 selectedNoteForEnlarge = null
             },
             onShare = {
-                val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(
-                        Intent.EXTRA_TEXT,
-                        "【脑雾收集站 · 日常便签】\n${note.moodEmoji} ${note.content}\n— 记录于 脑雾收集站 (Brain Sticky)"
-                    )
-                }
-                val shareChooser = Intent.createChooser(
-                    sendIntent,
-                    if (lang == AppLanguage.CHINESE) "分享便签" else "Share Note"
+                com.example.brainsticky.util.ShareHelper.shareText(
+                    context = context,
+                    text = "【脑雾收集站 · 日常便签】\n${note.moodEmoji} ${note.content}\n— 记录于 脑雾收集站 (Brain Sticky)",
+                    title = if (lang == AppLanguage.CHINESE) "微信发给朋友" else "Share Note"
                 )
-                context.startActivity(shareChooser)
             }
         )
     }
@@ -605,7 +591,7 @@ fun EnlargedStickyNoteDialog(
                         ) {
                             Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.Black.copy(alpha = 0.75f), modifier = Modifier.size(15.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(if (lang == AppLanguage.CHINESE) "分享" else "Share", fontSize = 12.sp, color = Color.Black.copy(alpha = 0.75f))
+                            Text(if (lang == AppLanguage.CHINESE) "微信发给朋友" else "Share", fontSize = 12.sp, color = Color.Black.copy(alpha = 0.75f))
                         }
 
                         if (isEditing) {
