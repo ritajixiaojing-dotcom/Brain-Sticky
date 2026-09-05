@@ -254,7 +254,7 @@ fun TodoScreen(
                                     com.example.brainsticky.util.ShareHelper.shareText(
                                         context = context,
                                         text = "⚡【请你帮我办件事】\n${item.title}\n\n拜托啦！谢谢你～\n— 来自 脑雾收集站 (Brain Sticky)",
-                                        title = if (lang == AppLanguage.CHINESE) "⚡ 微信发给朋友帮办" else "Delegate Todo"
+                                        title = if (lang == AppLanguage.CHINESE) "⚡ 分享给朋友帮办" else "Share Todo"
                                     )
                                 },
                                 onDelete = { todoToDelete = item }

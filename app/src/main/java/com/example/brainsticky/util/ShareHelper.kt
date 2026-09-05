@@ -13,25 +13,12 @@ import android.widget.Toast
 object ShareHelper {
 
     fun shareText(context: Context, text: String, title: String = "脑雾收集站") {
-        // 1. 毫秒级自动复制到系统剪贴板
+        // 1. 自动复制到系统剪贴板
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText(title, text)
         clipboard.setPrimaryClip(clip)
 
-        // 2. 检测是否安装微信 (com.tencent.mm)
-        val pm = context.packageManager
-        val wechatIntent = pm.getLaunchIntentForPackage("com.tencent.mm")
-        if (wechatIntent != null) {
-            Toast.makeText(context, "文字已自动复制，正在打开微信...", Toast.LENGTH_SHORT).show()
-            try {
-                context.startActivity(wechatIntent)
-                return
-            } catch (e: Exception) {
-                // 如果直接拉起失败，平滑降级为系统分享选择器
-            }
-        }
-
-        // 3. 未安装微信或直接拉起失败：降级唤起系统原生分享选择器
+        // 2. 唤起系统原生分享面板 (支持微信、短信、备忘录等任意平台)
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, text)

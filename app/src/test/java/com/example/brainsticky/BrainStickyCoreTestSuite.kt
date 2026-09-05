@@ -254,4 +254,42 @@ class BrainStickyCoreTestSuite {
             assertFalse(habit.isCompleted)
         }
     }
+
+    @Test
+    fun testHabitDeduplicationAndMergeLogic() {
+        val entries = listOf(
+            CustomEntryItem(id = "h1", title = "早睡早起", count = 1, streakDays = 1, historyDates = listOf("2026-09-04")),
+            CustomEntryItem(id = "h2", title = " 早睡早起 ", count = 2, streakDays = 3, historyDates = listOf("2026-09-05")),
+            CustomEntryItem(id = "h3", title = "多邻国", count = 5, streakDays = 5, historyDates = listOf("2026-09-01", "2026-09-02"))
+        )
+
+        val seen = mutableSetOf<String>()
+        val unique = mutableListOf<CustomEntryItem>()
+        for (entry in entries) {
+            val key = entry.title.trim().lowercase()
+            if (key !in seen) {
+                seen.add(key)
+                unique.add(entry)
+            } else {
+                val idx = unique.indexOfFirst { it.title.trim().lowercase() == key }
+                if (idx != -1) {
+                    val existing = unique[idx]
+                    unique[idx] = existing.copy(
+                        count = maxOf(existing.count, entry.count),
+                        streakDays = maxOf(existing.streakDays, entry.streakDays),
+                        isCompleted = existing.isCompleted || entry.isCompleted,
+                        historyDates = (existing.historyDates + entry.historyDates).distinct()
+                    )
+                }
+            }
+        }
+
+        assertEquals(2, unique.size)
+        val mergedHabit = unique.first { it.title.trim() == "早睡早起" }
+        assertEquals(2, mergedHabit.count)
+        assertEquals(3, mergedHabit.streakDays)
+        assertEquals(2, mergedHabit.historyDates.size)
+        assertTrue(mergedHabit.historyDates.contains("2026-09-04"))
+        assertTrue(mergedHabit.historyDates.contains("2026-09-05"))
+    }
 }
