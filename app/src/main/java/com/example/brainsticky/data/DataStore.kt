@@ -109,6 +109,36 @@ class DataStore private constructor(context: Context) {
                 )
             }
         }
+
+        // Deduplicate any duplicate habit entries with identical title
+        var hadDuplicates = false
+        customModules = customModules.map { mod ->
+            val seen = mutableSetOf<String>()
+            val unique = mutableListOf<CustomEntryItem>()
+            for (entry in mod.entries) {
+                val key = entry.title.trim().lowercase()
+                if (key !in seen) {
+                    seen.add(key)
+                    unique.add(entry)
+                } else {
+                    hadDuplicates = true
+                    val idx = unique.indexOfFirst { it.title.trim().lowercase() == key }
+                    if (idx != -1) {
+                        val existing = unique[idx]
+                        unique[idx] = existing.copy(
+                            count = maxOf(existing.count, entry.count),
+                            streakDays = maxOf(existing.streakDays, entry.streakDays),
+                            isCompleted = existing.isCompleted || entry.isCompleted,
+                            historyDates = (existing.historyDates + entry.historyDates).distinct()
+                        )
+                    }
+                }
+            }
+            mod.copy(entries = unique)
+        }
+        if (hadDuplicates) {
+            saveCustomModules()
+        }
     }
 
     private fun saveTodos() = prefs.edit().putString("todos", json.encodeToString(todos)).apply()
@@ -322,11 +352,23 @@ class DataStore private constructor(context: Context) {
         saveCustomModules()
     }
 
-    fun addHabitEntry(moduleId: String, entry: CustomEntryItem) {
+    fun addHabitEntry(moduleId: String, entry: CustomEntryItem): Boolean {
+        var added = false
         customModules = customModules.map { mod ->
-            if (mod.id == moduleId) mod.copy(entries = mod.entries + entry) else mod
+            if (mod.id == moduleId) {
+                val exists = mod.entries.any { it.title.trim().equals(entry.title.trim(), ignoreCase = true) }
+                if (exists) {
+                    mod
+                } else {
+                    added = true
+                    mod.copy(entries = mod.entries + entry)
+                }
+            } else mod
         }
-        saveCustomModules()
+        if (added) {
+            saveCustomModules()
+        }
+        return added
     }
     fun updateHabitEntry(moduleId: String, entry: CustomEntryItem) {
         customModules = customModules.map { mod ->

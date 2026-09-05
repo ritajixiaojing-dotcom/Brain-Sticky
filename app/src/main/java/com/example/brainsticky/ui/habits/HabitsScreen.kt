@@ -213,6 +213,7 @@ fun HabitsScreen(
     if (isShowingAddDialog && habitModule != null) {
         AddHabitDialog(
             lang = lang,
+            existingEntries = habitModule.entries,
             onDismiss = { isShowingAddDialog = false },
             onSave = { dataStore.addHabitEntry(habitModule.id, it) }
         )
@@ -338,23 +339,35 @@ fun HabitItemCard(
 @Composable
 fun AddHabitDialog(
     lang: AppLanguage,
+    existingEntries: List<CustomEntryItem> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (CustomEntryItem) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var icon by remember { mutableStateOf("⭐️") }
     var title by remember { mutableStateOf("") }
     var detail by remember { mutableStateOf("") }
 
     val commitSave = {
-        if (title.isNotBlank()) {
-            onSave(
-                CustomEntryItem(
-                    icon = icon.ifBlank { "⭐️" },
-                    title = title.trim(),
-                    detail = detail.trim()
+        val trimmedTitle = title.trim()
+        if (trimmedTitle.isNotBlank()) {
+            val isDuplicate = existingEntries.any { it.title.trim().equals(trimmedTitle, ignoreCase = true) }
+            if (isDuplicate) {
+                android.widget.Toast.makeText(
+                    context,
+                    if (lang == AppLanguage.CHINESE) "「$trimmedTitle」已在打卡列表中，无需重复添加 ✨" else "\"$trimmedTitle\" is already in your habits list! ✨",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                onSave(
+                    CustomEntryItem(
+                        icon = icon.ifBlank { "⭐️" },
+                        title = trimmedTitle,
+                        detail = detail.trim()
+                    )
                 )
-            )
-            onDismiss()
+                onDismiss()
+            }
         }
     }
 
@@ -388,22 +401,38 @@ fun AddHabitDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(BuiltinHabitPreset.ALL.filter { it.titleZh != "自定义" && it.titleZh != "其他" }) { preset ->
+                        val presetTitle = preset.getTitle(lang)
+                        val alreadyAdded = existingEntries.any {
+                            it.title.trim().equals(presetTitle.trim(), ignoreCase = true) ||
+                            it.title.trim() == preset.titleZh
+                        }
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .background(
+                                    if (alreadyAdded) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
                                 .clickable {
-                                    icon = preset.icon
-                                    title = preset.getTitle(lang)
-                                    detail = preset.getDetail(lang)
+                                    if (alreadyAdded) {
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            if (lang == AppLanguage.CHINESE) "「$presetTitle」已在打卡列表中，无需重复添加 ✨" else "\"$presetTitle\" already exists in your habits!",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        icon = preset.icon
+                                        title = presetTitle
+                                        detail = preset.getDetail(lang)
+                                    }
                                 }
                                 .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = "${preset.icon} ${preset.getTitle(lang)}",
+                                text = if (alreadyAdded) "${preset.icon} $presetTitle ✓" else "${preset.icon} $presetTitle",
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                fontWeight = if (alreadyAdded) FontWeight.Normal else FontWeight.Bold,
+                                color = if (alreadyAdded) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f) else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
