@@ -190,7 +190,7 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                             )
                             Text(
-                                text = "1.1.0 (Android Build)",
+                                text = "1.2.3 (Android Build)",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface

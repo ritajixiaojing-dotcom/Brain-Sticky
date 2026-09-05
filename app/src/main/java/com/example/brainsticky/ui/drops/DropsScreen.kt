@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -335,6 +338,9 @@ fun EnlargedStickyNoteDialog(
     onShare: () -> Unit
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     var isEditing by remember { mutableStateOf(false) }
     var editedContent by remember { mutableStateOf(note.content) }
     var editedHex by remember { mutableStateOf(note.colorHex) }
@@ -349,15 +355,29 @@ fun EnlargedStickyNoteDialog(
     val fullTimeStr = remember(note.createdAt) { sdf.format(Date(note.createdAt)) }
 
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            focusManager.clearFocus()
+            keyboardController?.hide()
+            onDismiss()
+        },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.6f))
-                .clickable { onDismiss() }
-                .padding(20.dp),
+                .imePadding()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                    if (!isEditing) {
+                        onDismiss()
+                    }
+                }
+                .padding(horizontal = 16.dp, vertical = 20.dp),
             contentAlignment = Alignment.Center
         ) {
             Card(
@@ -365,14 +385,28 @@ fun EnlargedStickyNoteDialog(
                 colors = CardDefaults.cardColors(containerColor = BentoColors.colorForHex(editedHex)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
                 modifier = Modifier
-                    .fillMaxWidth(0.92f)
-                    .clickable(enabled = false) {} // Prevent click-through
+                    .fillMaxWidth(0.94f)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                    }
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(22.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                        .verticalScroll(rememberScrollState())
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            focusManager.clearFocus()
+                            keyboardController?.hide()
+                        }
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Top Header
                     Row(
@@ -387,7 +421,11 @@ fun EnlargedStickyNoteDialog(
                             Text(text = editedEmoji, fontSize = 28.sp)
                             Column {
                                 Text(
-                                    text = if (lang == AppLanguage.CHINESE) "便签详情" else "Note Detail",
+                                    text = if (isEditing) {
+                                        if (lang == AppLanguage.CHINESE) "编辑便签" else "Edit Note"
+                                    } else {
+                                        if (lang == AppLanguage.CHINESE) "便签详情" else "Note Detail"
+                                    },
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.Black.copy(alpha = 0.8f)
@@ -400,14 +438,39 @@ fun EnlargedStickyNoteDialog(
                             }
                         }
 
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.08f))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.Black.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+                            if (isEditing) {
+                                Button(
+                                    onClick = {
+                                        focusManager.clearFocus()
+                                        keyboardController?.hide()
+                                        onUpdate(note.copy(content = editedContent.trim(), colorHex = editedHex, textColorHex = editedTextColorHex, moodEmoji = editedEmoji))
+                                        isEditing = false
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = BentoColors.NoteAmber),
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text(if (lang == AppLanguage.CHINESE) "保存" else "Save", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                }
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    focusManager.clearFocus()
+                                    keyboardController?.hide()
+                                    onDismiss()
+                                },
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.08f))
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.Black.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+                            }
                         }
                     }
 
@@ -424,7 +487,7 @@ fun EnlargedStickyNoteDialog(
                                 lineHeight = 24.sp
                             ),
                             colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.White.copy(alpha = 0.6f),
+                                focusedContainerColor = Color.White.copy(alpha = 0.65f),
                                 unfocusedContainerColor = Color.White.copy(alpha = 0.4f),
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent
@@ -432,7 +495,7 @@ fun EnlargedStickyNoteDialog(
                             shape = RoundedCornerShape(16.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 160.dp, max = 280.dp)
+                                .heightIn(min = 120.dp, max = 240.dp)
                         )
 
                         // Mood selector in edit mode
@@ -556,57 +619,86 @@ fun EnlargedStickyNoteDialog(
                     HorizontalDivider(color = Color.Black.copy(alpha = 0.08f))
 
                     // Bottom Action Toolbar
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Copy Text Button
-                        Button(
-                            onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clip = ClipData.newPlainText("Sticky Note", note.content)
-                                clipboard.setPrimaryClip(clip)
-                                Toast.makeText(
-                                    context,
-                                    if (lang == AppLanguage.CHINESE) "已复制便签文本 📋" else "Copied to clipboard 📋",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.08f)),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    if (isEditing) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = Color.Black.copy(alpha = 0.75f), modifier = Modifier.size(15.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(if (lang == AppLanguage.CHINESE) "复制" else "Copy", fontSize = 12.sp, color = Color.Black.copy(alpha = 0.75f))
-                        }
-
-                        // Share Button
-                        Button(
-                            onClick = onShare,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.08f)),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                        ) {
-                            Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.Black.copy(alpha = 0.75f), modifier = Modifier.size(15.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(if (lang == AppLanguage.CHINESE) "微信发给朋友" else "Share", fontSize = 12.sp, color = Color.Black.copy(alpha = 0.75f))
-                        }
-
-                        if (isEditing) {
+                            // 收起键盘按钮
                             Button(
                                 onClick = {
+                                    focusManager.clearFocus()
+                                    keyboardController?.hide()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.08f)),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.KeyboardHide, contentDescription = "Hide Keyboard", tint = Color.Black.copy(alpha = 0.75f), modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(if (lang == AppLanguage.CHINESE) "收起键盘" else "Hide Keyboard", fontSize = 12.sp, color = Color.Black.copy(alpha = 0.75f))
+                            }
+
+                            // 保存按钮
+                            Button(
+                                onClick = {
+                                    focusManager.clearFocus()
+                                    keyboardController?.hide()
                                     onUpdate(note.copy(content = editedContent.trim(), colorHex = editedHex, textColorHex = editedTextColorHex, moodEmoji = editedEmoji))
                                     isEditing = false
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = BentoColors.NoteAmber),
                                 shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                                modifier = Modifier.weight(1.2f)
                             ) {
-                                Text(if (lang == AppLanguage.CHINESE) "保存" else "Save", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Icon(Icons.Default.Check, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(if (lang == AppLanguage.CHINESE) "保存修改 ✨" else "Save Changes ✨", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                             }
-                        } else {
+                        }
+                    } else {
+                        // Normal view toolbar (Copy, Share, Edit, Delete)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Copy Text Button
+                            Button(
+                                onClick = {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("Sticky Note", note.content)
+                                    clipboard.setPrimaryClip(clip)
+                                    Toast.makeText(
+                                        context,
+                                        if (lang == AppLanguage.CHINESE) "已复制便签文本 📋" else "Copied to clipboard 📋",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.08f)),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = Color.Black.copy(alpha = 0.75f), modifier = Modifier.size(15.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(if (lang == AppLanguage.CHINESE) "复制" else "Copy", fontSize = 12.sp, color = Color.Black.copy(alpha = 0.75f))
+                            }
+
+                            // Share Button
+                            Button(
+                                onClick = onShare,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.08f)),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.Black.copy(alpha = 0.75f), modifier = Modifier.size(15.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(if (lang == AppLanguage.CHINESE) "微信发给朋友" else "Share", fontSize = 12.sp, color = Color.Black.copy(alpha = 0.75f))
+                            }
+
                             // Edit Button
                             Button(
                                 onClick = { isEditing = true },
@@ -618,14 +710,14 @@ fun EnlargedStickyNoteDialog(
                                 Spacer(Modifier.width(4.dp))
                                 Text(if (lang == AppLanguage.CHINESE) "编辑" else "Edit", fontSize = 12.sp, color = Color.Black.copy(alpha = 0.75f))
                             }
-                        }
 
-                        // Delete Button
-                        IconButton(
-                            onClick = onDelete,
-                            modifier = Modifier.size(34.dp)
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+                            // Delete Button
+                            IconButton(
+                                onClick = onDelete,
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+                            }
                         }
                     }
                 }
