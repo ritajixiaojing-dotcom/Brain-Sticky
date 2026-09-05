@@ -115,6 +115,17 @@ class BrainStickyCoreTestSuite {
         assertNotNull(waterPreset)
         assertEquals("多喝水", waterPreset?.getTitle(AppLanguage.CHINESE))
         assertEquals("Drink Water", waterPreset?.getTitle(AppLanguage.ENGLISH))
+
+        val duolingoPreset = presets.firstOrNull { it.titleZh == "多邻国" }
+        assertNotNull(duolingoPreset)
+        assertEquals("Duolingo", duolingoPreset?.getTitle(AppLanguage.ENGLISH))
+
+        val cookingPreset = presets.firstOrNull { it.titleZh == "在家做饭" }
+        assertNotNull(cookingPreset)
+
+        val customPreset = presets.firstOrNull { it.titleZh == "自定义" }
+        assertNotNull(customPreset)
+        assertEquals("Custom", customPreset?.getTitle(AppLanguage.ENGLISH))
     }
 
     @Test

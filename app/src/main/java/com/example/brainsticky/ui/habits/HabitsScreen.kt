@@ -1,6 +1,7 @@
 package com.example.brainsticky.ui.habits
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -386,14 +387,14 @@ fun AddHabitDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(BuiltinHabitPreset.ALL) { preset ->
+                    items(BuiltinHabitPreset.ALL.filter { it.titleZh != "自定义" && it.titleZh != "其他" }) { preset ->
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (preset.titleZh == "其他") BentoColors.OmniElectric.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                                 .clickable {
                                     icon = preset.icon
-                                    title = if (preset.titleZh == "其他") "" else preset.getTitle(lang)
+                                    title = preset.getTitle(lang)
                                     detail = preset.getDetail(lang)
                                 }
                                 .padding(horizontal = 10.dp, vertical = 6.dp)
@@ -402,14 +403,55 @@ fun AddHabitDialog(
                                 text = "${preset.icon} ${preset.getTitle(lang)}",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (preset.titleZh == "其他") BentoColors.OmniElectric else MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+
+                // 自定义 另起一行 (避免用户需要左滑太久寻找)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val isCustom = title.isBlank()
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                if (isCustom) BentoColors.OmniElectric.copy(alpha = 0.15f)
+                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (isCustom) BentoColors.OmniElectric else Color.Transparent,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .clickable {
+                                icon = "✨"
+                                title = ""
+                                detail = ""
+                            }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("✨", fontSize = 13.sp)
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "+ 自定义习惯" else "+ Custom Habit",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isCustom) BentoColors.OmniElectric else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
                 }
 
                 // Emoji Picker Row
-                val quickEmojis = listOf("⭐️", "🎯", "🏃", "💧", "🌙", "📖", "🧘", "🎸", "🎹", "🏋️", "💊", "🎨", "🌿", "☕️", "🐱", "💡", "🍳", "🚴")
+                val quickEmojis = listOf("⭐️", "🎯", "🏃", "💧", "🌙", "📖", "🧘", "🦉", "🍳", "🐱", "👶", "🧹", "🧘‍♀️", "☕️", "🎸", "🎹", "🏋️", "💊", "🎨", "🌿", "💡", "🚴")
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -445,7 +487,7 @@ fun AddHabitDialog(
                         value = title,
                         onValueChange = { title = it },
                         label = { Text(if (lang == AppLanguage.CHINESE) "习惯名称" else "Habit Title") },
-                        placeholder = { Text(if (lang == AppLanguage.CHINESE) "如：背单词 / 练琴 / 随心写" else "e.g. Practice Piano / Vocab") },
+                        placeholder = { Text(if (lang == AppLanguage.CHINESE) "如：多邻国 / 练琴 / 随心写" else "e.g. Duolingo / Practice Piano") },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )

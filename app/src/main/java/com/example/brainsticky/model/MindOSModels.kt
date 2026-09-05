@@ -227,10 +227,16 @@ data class BuiltinHabitPreset(
             BuiltinHabitPreset("🌙", "早睡早起", "Sleep Early", "23:00 前放下手机", "No phone after 11 PM"),
             BuiltinHabitPreset("📖", "每日阅读", "Daily Reading", "读 10 页好书", "Read 10 pages"),
             BuiltinHabitPreset("🧘", "正念冥想", "Meditation", "深呼吸放空 10 分钟", "10 mins breathing"),
-            BuiltinHabitPreset("🇬🇧", "背单词", "Vocab & English", "打卡 20 个新单词", "Learn 20 new words"),
+            BuiltinHabitPreset("🦉", "多邻国", "Duolingo", "今日语言练习打卡", "Daily language lesson"),
+            BuiltinHabitPreset("🍳", "在家做饭", "Home Cooking", "健康饮食少外卖", "Healthy home-cooked meal"),
+            BuiltinHabitPreset("🐱", "照顾宠物", "Pet Care", "喂食铲屎与陪伴", "Feed & cuddle pets"),
+            BuiltinHabitPreset("👶", "耐心带娃", "Parenting", "温柔陪伴好脾气", "Mindful & gentle parenting"),
+            BuiltinHabitPreset("🧹", "整理房间", "Tidy Room", "随手收拾整洁空间", "Clean & tidy living space"),
+            BuiltinHabitPreset("🧘‍♀️", "瑜伽", "Yoga", "拉伸舒展与塑形", "Stretch & body alignment"),
+            BuiltinHabitPreset("☕️", "咖啡茶饮", "Coffee & Tea", "享受一杯惬意慢时光", "Mindful sip & slow time"),
             BuiltinHabitPreset("💰", "今日记账", "Expense Tracking", "记录每一笔开销", "Log all daily spendings"),
             BuiltinHabitPreset("🧴", "早晚护肤", "Skincare Routine", "防晒与补水", "Moisturize & sunscreen"),
-            BuiltinHabitPreset("✨", "其他", "Other", "", "")
+            BuiltinHabitPreset("✨", "自定义", "Custom", "", "")
         )
     }
 }
