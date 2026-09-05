@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -367,14 +369,13 @@ fun EnlargedStickyNoteDialog(
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.6f))
                 .imePadding()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) {
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                    if (!isEditing) {
-                        onDismiss()
+                .pointerInput(isEditing) {
+                    detectTapGestures {
+                        focusManager.clearFocus(force = true)
+                        keyboardController?.hide()
+                        if (!isEditing) {
+                            onDismiss()
+                        }
                     }
                 }
                 .padding(horizontal = 16.dp, vertical = 20.dp),
@@ -386,24 +387,22 @@ fun EnlargedStickyNoteDialog(
                 elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
                 modifier = Modifier
                     .fillMaxWidth(0.94f)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        focusManager.clearFocus()
-                        keyboardController?.hide()
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            focusManager.clearFocus(force = true)
+                            keyboardController?.hide()
+                        }
                     }
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            focusManager.clearFocus()
-                            keyboardController?.hide()
+                        .pointerInput(Unit) {
+                            detectTapGestures {
+                                focusManager.clearFocus(force = true)
+                                keyboardController?.hide()
+                            }
                         }
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
