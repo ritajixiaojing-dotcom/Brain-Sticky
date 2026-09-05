@@ -160,7 +160,7 @@ fun DropsScreen(
                                     com.example.brainsticky.util.ShareHelper.shareText(
                                         context = context,
                                         text = "【脑雾收集站 · 日常便签】\n${note.moodEmoji} ${note.content}\n— 记录于 脑雾收集站 (Brain Sticky)",
-                                        title = if (lang == AppLanguage.CHINESE) "微信发给朋友" else "Share Note"
+                                        title = if (lang == AppLanguage.CHINESE) "分享" else "Share Note"
                                     )
                                 },
                                 onDelete = { noteToDelete = note }
@@ -183,14 +183,14 @@ fun DropsScreen(
                 selectedNoteForEnlarge = updated
             },
             onDelete = {
-                noteToDelete = note
+                dataStore.deleteStickyNote(note.id)
                 selectedNoteForEnlarge = null
             },
             onShare = {
                 com.example.brainsticky.util.ShareHelper.shareText(
                     context = context,
                     text = "【脑雾收集站 · 日常便签】\n${note.moodEmoji} ${note.content}\n— 记录于 脑雾收集站 (Brain Sticky)",
-                    title = if (lang == AppLanguage.CHINESE) "微信发给朋友" else "Share Note"
+                    title = if (lang == AppLanguage.CHINESE) "分享" else "Share Note"
                 )
             }
         )
@@ -344,6 +344,7 @@ fun EnlargedStickyNoteDialog(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var isEditing by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     var editedContent by remember { mutableStateOf(note.content) }
     var editedHex by remember { mutableStateOf(note.colorHex) }
     var editedTextColorHex by remember { mutableStateOf(note.textColorHex) }
@@ -441,21 +442,6 @@ fun EnlargedStickyNoteDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            if (isEditing) {
-                                Button(
-                                    onClick = {
-                                        focusManager.clearFocus()
-                                        keyboardController?.hide()
-                                        onUpdate(note.copy(content = editedContent.trim(), colorHex = editedHex, textColorHex = editedTextColorHex, moodEmoji = editedEmoji))
-                                        isEditing = false
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = BentoColors.NoteAmber),
-                                    shape = RoundedCornerShape(12.dp),
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                                ) {
-                                    Text(if (lang == AppLanguage.CHINESE) "保存" else "Save", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                }
-                            }
 
                             IconButton(
                                 onClick = {
@@ -619,44 +605,22 @@ fun EnlargedStickyNoteDialog(
 
                     // Bottom Action Toolbar
                     if (isEditing) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        // 保存按钮 (全宽、醒目)
+                        Button(
+                            onClick = {
+                                focusManager.clearFocus()
+                                keyboardController?.hide()
+                                onUpdate(note.copy(content = editedContent.trim(), colorHex = editedHex, textColorHex = editedTextColorHex, moodEmoji = editedEmoji))
+                                isEditing = false
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = BentoColors.NoteAmber),
+                            shape = RoundedCornerShape(14.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            // 收起键盘按钮
-                            Button(
-                                onClick = {
-                                    focusManager.clearFocus()
-                                    keyboardController?.hide()
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.08f)),
-                                shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Icon(Icons.Default.KeyboardHide, contentDescription = "Hide Keyboard", tint = Color.Black.copy(alpha = 0.75f), modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text(if (lang == AppLanguage.CHINESE) "收起键盘" else "Hide Keyboard", fontSize = 12.sp, color = Color.Black.copy(alpha = 0.75f))
-                            }
-
-                            // 保存按钮
-                            Button(
-                                onClick = {
-                                    focusManager.clearFocus()
-                                    keyboardController?.hide()
-                                    onUpdate(note.copy(content = editedContent.trim(), colorHex = editedHex, textColorHex = editedTextColorHex, moodEmoji = editedEmoji))
-                                    isEditing = false
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = BentoColors.NoteAmber),
-                                shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                                modifier = Modifier.weight(1.2f)
-                            ) {
-                                Icon(Icons.Default.Check, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text(if (lang == AppLanguage.CHINESE) "保存修改 ✨" else "Save Changes ✨", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                            }
+                            Icon(Icons.Default.Check, contentDescription = "Save", tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (lang == AppLanguage.CHINESE) "保存修改 ✨" else "Save Changes ✨", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     } else {
                         // Normal view toolbar (Copy, Share, Edit, Delete)
@@ -695,7 +659,7 @@ fun EnlargedStickyNoteDialog(
                             ) {
                                 Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.Black.copy(alpha = 0.75f), modifier = Modifier.size(15.dp))
                                 Spacer(Modifier.width(4.dp))
-                                Text(if (lang == AppLanguage.CHINESE) "微信发给朋友" else "Share", fontSize = 12.sp, color = Color.Black.copy(alpha = 0.75f))
+                                Text(if (lang == AppLanguage.CHINESE) "分享" else "Share", fontSize = 12.sp, color = Color.Black.copy(alpha = 0.75f))
                             }
 
                             // Edit Button
@@ -712,7 +676,7 @@ fun EnlargedStickyNoteDialog(
 
                             // Delete Button
                             IconButton(
-                                onClick = onDelete,
+                                onClick = { showDeleteConfirm = true },
                                 modifier = Modifier.size(34.dp)
                             ) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
@@ -721,6 +685,40 @@ fun EnlargedStickyNoteDialog(
                     }
                 }
             }
+        }
+
+        // Delete Confirmation Dialog inside detail view
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = {
+                    Text(
+                        text = if (lang == AppLanguage.CHINESE) "确认删除便签？" else "Delete Note?",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(
+                        text = if (lang == AppLanguage.CHINESE) "删除后将无法恢复，确定要删除这条便签吗？" else "This action cannot be undone. Are you sure you want to delete this note?"
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showDeleteConfirm = false
+                            onDelete()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text(if (lang == AppLanguage.CHINESE) "删除" else "Delete", color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirm = false }) {
+                        Text(if (lang == AppLanguage.CHINESE) "取消" else "Cancel")
+                    }
+                }
+            )
         }
     }
 }
