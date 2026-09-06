@@ -103,7 +103,7 @@ public struct StickyNotesWallView: View {
                                     Button(action: {
                                         ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)", title: "\(note.moodEmoji) 日常便签")
                                     }) {
-                                        Label(langManager.currentLanguage == .chinese ? "微信发给朋友" : "Share to WeChat", systemImage: "arrow.up.forward.app")
+                                        Label(langManager.currentLanguage == .chinese ? "分享" : "Share", systemImage: "square.and.arrow.up")
                                     }
                                     
                                     Button(action: {
@@ -344,9 +344,9 @@ struct EnlargedStickyNoteViewerSheet: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                     
-                    // 底部操作区
+                    // 底部操作区 (复制、分享、编辑)
                     HStack(spacing: 12) {
-                        // 复制按钮
+                        // 1. 复制按钮 (唯一保留的复制功能，带已复制反馈)
                         Button(action: {
                             UIPasteboard.general.string = note.content
                             HapticManager.shared.notification(.success)
@@ -357,7 +357,7 @@ struct EnlargedStickyNoteViewerSheet: View {
                         }) {
                             HStack(spacing: 6) {
                                 Image(systemName: hasCopied ? "checkmark.circle.fill" : "doc.on.doc")
-                                Text(hasCopied ? (langManager.currentLanguage == .chinese ? "已复制" : "Copied") : (langManager.currentLanguage == .chinese ? "复制全文" : "Copy"))
+                                Text(hasCopied ? (langManager.currentLanguage == .chinese ? "已复制" : "Copied") : (langManager.currentLanguage == .chinese ? "复制" : "Copy"))
                             }
                             .font(.system(size: 14, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
@@ -368,13 +368,13 @@ struct EnlargedStickyNoteViewerSheet: View {
                             .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
                         }
                         
-                        // 分享按钮 (支持微信、WhatsApp 等)
+                        // 2. 分享按钮 (支持微信、WhatsApp、短信、邮件等原生系统分享)
                         Button(action: {
                             ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)", title: "\(note.moodEmoji) 日常便签")
                         }) {
                             HStack(spacing: 6) {
-                                Image(systemName: "arrow.up.forward.app")
-                                Text(langManager.currentLanguage == .chinese ? "微信发给朋友" : "Share to WeChat")
+                                Image(systemName: "square.and.arrow.up")
+                                Text(langManager.currentLanguage == .chinese ? "分享" : "Share")
                             }
                             .font(.system(size: 14, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
@@ -385,24 +385,7 @@ struct EnlargedStickyNoteViewerSheet: View {
                             .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
                         }
                         
-                        // 复制按钮
-                        Button(action: {
-                            ShareManager.copyToClipboard("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)")
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "doc.on.doc")
-                                Text(langManager.currentLanguage == .chinese ? "复制" : "Copy")
-                            }
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                            .foregroundColor(.primary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .shadow(color: Color.black.opacity(0.05), radius: 6, x: 0, y: 2)
-                        }
-                        
-                        // 编辑按钮
+                        // 3. 编辑按钮
                         Button(action: onEdit) {
                             HStack(spacing: 6) {
                                 Image(systemName: "pencil")
@@ -540,8 +523,8 @@ struct EditStickyNoteSheet: View {
                     ShareManager.shareText("【脑雾收集站 · 日常便签】\n\(note.moodEmoji) \(note.content)\n— 记录于 脑雾收集站 (Brain Sticky)", title: "\(note.moodEmoji) 日常便签")
                 }) {
                     HStack {
-                        Image(systemName: "arrow.up.forward.app")
-                        Text(langManager.currentLanguage == .chinese ? "微信发给朋友" : "Share to WeChat")
+                        Image(systemName: "square.and.arrow.up")
+                        Text(langManager.currentLanguage == .chinese ? "分享" : "Share")
                     }
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(BentoColors.noteAmber)

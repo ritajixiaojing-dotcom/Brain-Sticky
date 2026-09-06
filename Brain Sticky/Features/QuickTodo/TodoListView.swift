@@ -735,7 +735,7 @@ struct EditTodoSheet: View {
                     }) {
                         HStack {
                             Spacer()
-                            Label(langManager.currentLanguage == .chinese ? "⚡ 微信发给朋友帮办" : "⚡ Share to WeChat", systemImage: "arrow.up.forward.app")
+                            Label(langManager.currentLanguage == .chinese ? "⚡ 分享给朋友帮办" : "⚡ Delegate Todo", systemImage: "square.and.arrow.up")
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
                                 .foregroundColor(BentoColors.urgentCoral)
                             Spacer()

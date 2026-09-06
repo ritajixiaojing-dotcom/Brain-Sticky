@@ -211,9 +211,9 @@ public struct BentoCardView<Content: View>: View {
                 
                 CuteHollowTitleView(
                     text: title,
-                    fontSize: 17,
+                    fontSize: 15,
                     strokeColor: Color(red: 120/255, green: 112/255, blue: 135/255),
-                    strokeWidth: 1.2,
+                    strokeWidth: 1.1,
                     fillColor: Color.white
                 )
                 
@@ -385,35 +385,29 @@ public final class ShareManager {
         }
     }
     
-    /// 触发一键直达微信分享：毫秒级复制文本到剪贴板，并一键直接跳转打开微信，聊天框长按即可粘贴发出
+    /// 触发原生分享面板：自动复制文本到剪贴板，并唤起系统原生分享选择器（支持微信、WhatsApp、短信、邮件等）
     public static func shareText(_ text: String, title: String = "脑雾收集站") {
-        // 1. 毫秒级自动复制到系统剪贴板
+        // 1. 自动复制到系统剪贴板
         UIPasteboard.general.string = text
         HapticManager.shared.notification(.success)
         
-        let wechatURL = URL(string: "weixin://")
-        if let url = wechatURL, UIApplication.shared.canOpenURL(url) {
-            // 2. 检测到微信：一键直接跳转打开微信！
-            UIApplication.shared.open(url, options: [:], completionHandler: nil)
-        } else {
-            // 3. 未安装微信（如模拟器或未装微信）时：降级唤起系统原生分享面板
-            guard let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                  let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
-            
-            var topController = rootVC
-            while let presented = topController.presentedViewController {
-                topController = presented
-            }
-            
-            let cardImage = generateCardImage(text: text, title: title)
-            let activityVC = UIActivityViewController(activityItems: [text, cardImage], applicationActivities: nil)
-            if let popover = activityVC.popoverPresentationController {
-                popover.sourceView = topController.view
-                popover.sourceRect = CGRect(x: topController.view.bounds.midX, y: topController.view.bounds.midY, width: 0, height: 0)
-                popover.permittedArrowDirections = []
-            }
-            topController.present(activityVC, animated: true)
+        // 2. 唤起系统原生分享选择器 (可选择微信、WhatsApp、短信、邮件、拷贝等)
+        guard let windowScene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
+        
+        var topController = rootVC
+        while let presented = topController.presentedViewController {
+            topController = presented
         }
+        
+        let cardImage = generateCardImage(text: text, title: title)
+        let activityVC = UIActivityViewController(activityItems: [text, cardImage], applicationActivities: nil)
+        if let popover = activityVC.popoverPresentationController {
+            popover.sourceView = topController.view
+            popover.sourceRect = CGRect(x: topController.view.bounds.midX, y: topController.view.bounds.midY, width: 0, height: 0)
+            popover.permittedArrowDirections = []
+        }
+        topController.present(activityVC, animated: true)
     }
     
     /// 复制到剪贴板，提供触感反馈

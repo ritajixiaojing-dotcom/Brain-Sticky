@@ -39,6 +39,7 @@ let defaultBuiltinHabitPresets: [BuiltinHabitPreset] = [
     BuiltinHabitPreset(icon: "👶", name: "耐心带娃", labelZh: "耐心带娃", labelEn: "Kids", defaultDetailZh: "温柔陪伴", defaultDetailEn: "Gentle parenting"),
     BuiltinHabitPreset(icon: "🐾", name: "照顾宠物", labelZh: "照顾宠物", labelEn: "Pet Care", defaultDetailZh: "遛狗/喂猫/陪伴", defaultDetailEn: "Walk dog / feed cat"),
     BuiltinHabitPreset(icon: "🧹", name: "整理房间", labelZh: "整理房间", labelEn: "Tidy Up", defaultDetailZh: "保持房间整洁", defaultDetailEn: "Keep room clean"),
+    BuiltinHabitPreset(icon: "🧘‍♀️", name: "瑜伽", labelZh: "瑜伽", labelEn: "Yoga", defaultDetailZh: "身心舒展", defaultDetailEn: "Stretch & relax"),
     BuiltinHabitPreset(icon: "⛰️", name: "锻炼身体", labelZh: "锻炼身体", labelEn: "Workout", defaultDetailZh: "爬山看海", defaultDetailEn: "Climb & explore"),
     BuiltinHabitPreset(icon: "☕️", name: "咖啡茶饮", labelZh: "咖啡茶饮", labelEn: "Coffee/Tea", defaultDetailZh: "每日一杯", defaultDetailEn: "1 cup daily")
 ]
@@ -354,8 +355,12 @@ public struct CustomModuleDetailView: View {
                     .bouncyTap(scale: 0.95)
                     
                     ForEach(store.userCustomHabitPresets) { customPreset in
-                        let isAlreadyAdded = module.entries.contains(where: { $0.title == customPreset.name })
+                        let isAlreadyAdded = module.entries.contains(where: { $0.title.trimmingCharacters(in: .whitespacesAndNewlines) == customPreset.name.trimmingCharacters(in: .whitespacesAndNewlines) })
                         Button(action: {
+                            guard !isAlreadyAdded else {
+                                HapticManager.shared.notification(.warning)
+                                return
+                            }
                             selectPresetHabit(icon: customPreset.icon, name: customPreset.name, detail: customPreset.defaultDetail)
                         }) {
                             HStack(spacing: 4) {
@@ -367,22 +372,23 @@ public struct CustomModuleDetailView: View {
                                     .font(.system(size: 9))
                                 if isAlreadyAdded {
                                     Image(systemName: "checkmark")
-                                        .font(.system(size: 9, weight: .heavy))
+                                        .font(.system(size: 10, weight: .heavy))
                                         .foregroundColor(BentoColors.groceryMint)
                                 }
                             }
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(isAlreadyAdded ? themeColor.opacity(0.35) : Color.white.opacity(0.92))
-                            .foregroundColor(.primary)
+                            .background(isAlreadyAdded ? Color.gray.opacity(0.16) : Color.white.opacity(0.92))
+                            .foregroundColor(isAlreadyAdded ? .secondary : .primary)
                             .clipShape(Capsule())
                             .overlay(
                                 Capsule()
-                                    .stroke(isAlreadyAdded ? themeColor : Color.white.opacity(0.8), lineWidth: 1.2)
+                                    .stroke(isAlreadyAdded ? BentoColors.groceryMint.opacity(0.7) : Color.white.opacity(0.8), lineWidth: 1.2)
                             )
-                            .shadow(color: Color.black.opacity(0.04), radius: 3, x: 0, y: 2)
+                            .shadow(color: Color.black.opacity(isAlreadyAdded ? 0 : 0.04), radius: 3, x: 0, y: 2)
                         }
-                        .bouncyTap(scale: 0.95)
+                        .disabled(isAlreadyAdded)
+                        .bouncyTap(scale: isAlreadyAdded ? 1.0 : 0.95)
                         .contextMenu {
                             Button(role: .destructive) {
                                 store.removeCustomHabitPreset(id: customPreset.id)
@@ -393,8 +399,15 @@ public struct CustomModuleDetailView: View {
                     }
                     
                     ForEach(defaultBuiltinHabitPresets) { preset in
-                        let isAlreadyAdded = module.entries.contains(where: { $0.title == preset.name })
+                        let isAlreadyAdded = module.entries.contains(where: {
+                            let title = $0.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                            return title == preset.name.trimmingCharacters(in: .whitespacesAndNewlines) || title == preset.labelZh
+                        })
                         Button(action: {
+                            guard !isAlreadyAdded else {
+                                HapticManager.shared.notification(.warning)
+                                return
+                            }
                             selectPresetHabit(icon: preset.icon, name: preset.name, detail: preset.defaultDetail)
                         }) {
                             HStack(spacing: 4) {
@@ -404,22 +417,23 @@ public struct CustomModuleDetailView: View {
                                     .font(.system(size: 12, weight: .bold, design: .rounded))
                                 if isAlreadyAdded {
                                     Image(systemName: "checkmark")
-                                        .font(.system(size: 9, weight: .heavy))
+                                        .font(.system(size: 10, weight: .heavy))
                                         .foregroundColor(BentoColors.groceryMint)
                                 }
                             }
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(isAlreadyAdded ? themeColor.opacity(0.35) : Color.white.opacity(0.92))
-                            .foregroundColor(.primary)
+                            .background(isAlreadyAdded ? Color.gray.opacity(0.16) : Color.white.opacity(0.92))
+                            .foregroundColor(isAlreadyAdded ? .secondary : .primary)
                             .clipShape(Capsule())
                             .overlay(
                                 Capsule()
-                                    .stroke(isAlreadyAdded ? themeColor : Color.white.opacity(0.8), lineWidth: 1.2)
+                                    .stroke(isAlreadyAdded ? BentoColors.groceryMint.opacity(0.7) : Color.white.opacity(0.8), lineWidth: 1.2)
                             )
-                            .shadow(color: Color.black.opacity(0.04), radius: 3, x: 0, y: 2)
+                            .shadow(color: Color.black.opacity(isAlreadyAdded ? 0 : 0.04), radius: 3, x: 0, y: 2)
                         }
-                        .bouncyTap(scale: 0.95)
+                        .disabled(isAlreadyAdded)
+                        .bouncyTap(scale: isAlreadyAdded ? 1.0 : 0.95)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -530,49 +544,34 @@ public struct CustomModuleDetailView: View {
         .padding(.vertical, 4)
     }
     
-    // 快捷从预设栏点选加入单列打卡列表 (防重复添加并提示今日已打卡)
+    // 快捷从预设栏点选加入单列打卡列表 (点击过的项目打勾，再次点击功能不可用；打卡只能在列表内点击打卡+1)
     private func selectPresetHabit(icon: String, name: String, detail: String) {
-        if let existing = module.entries.first(where: { $0.title == name }) {
-            let isCheckedInToday = (existing.isCompleted || existing.count >= 1) && existing.isWithin24Hours
-            if isCheckedInToday {
-                alreadyCheckedInAlertInfo = AlreadyCheckedInInfo(title: existing.title, icon: existing.icon)
-                HapticManager.shared.notification(.warning)
-            } else {
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.65)) {
-                    _ = store.incrementEntryCountInModule(moduleId: module.id, entryId: existing.id)
-                }
-            }
-        } else {
-            let entry = CustomEntryItem(title: name, icon: icon, detail: detail, isCompleted: false)
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
-                store.addEntryToModule(moduleId: module.id, entry: entry)
-            }
-            HapticManager.shared.notification(.success)
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if module.entries.contains(where: { $0.title.trimmingCharacters(in: .whitespacesAndNewlines) == trimmed }) {
+            // 已添加过该项目：功能不可用，不重复添加，也不代为打卡
+            HapticManager.shared.notification(.warning)
+            return
         }
+        
+        // 首次点选：放入打卡列表（未打卡状态），等待用户点击「打卡 +1」
+        let entry = CustomEntryItem(title: trimmed, icon: icon, detail: detail, isCompleted: false)
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+            store.addEntryToModule(moduleId: module.id, entry: entry)
+        }
+        HapticManager.shared.notification(.success)
     }
     
     private func quickAddEntry() {
         let title = newEntryTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
         
-        if let existing = module.entries.first(where: { $0.title == title }) {
-            let isCheckedInToday = (existing.isCompleted || existing.count >= 1) && existing.isWithin24Hours
-            if isCheckedInToday {
-                alreadyCheckedInAlertInfo = AlreadyCheckedInInfo(title: existing.title, icon: existing.icon)
-                HapticManager.shared.notification(.warning)
-                newEntryTitle = ""
-                newEntryDetail = ""
-                isInputFocused = false
-                return
-            } else {
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.65)) {
-                    _ = store.incrementEntryCountInModule(moduleId: module.id, entryId: existing.id)
-                }
-                newEntryTitle = ""
-                newEntryDetail = ""
-                isInputFocused = false
-                return
-            }
+        if module.entries.contains(where: { $0.title.trimmingCharacters(in: .whitespacesAndNewlines) == title }) {
+            // 已存在相同打卡项，不可重复添加
+            HapticManager.shared.notification(.warning)
+            newEntryTitle = ""
+            newEntryDetail = ""
+            isInputFocused = false
+            return
         }
         
         let entry = CustomEntryItem(
@@ -1124,9 +1123,9 @@ public struct BentoCustomCardView: View {
                 
                 CuteHollowTitleView(
                     text: displayedTitle,
-                    fontSize: 17,
+                    fontSize: 15,
                     strokeColor: Color(red: 120/255, green: 112/255, blue: 135/255),
-                    strokeWidth: 1.2,
+                    strokeWidth: 1.1,
                     fillColor: Color.white
                 )
                 
