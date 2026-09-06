@@ -434,6 +434,12 @@ public final class DataStore: ObservableObject {
         // 严格清除自定义习惯列表中任何与内置常用图标重复的内容，避免重复出现
         userCustomHabitPresets.removeAll { DataStore.builtinHabitNames.contains($0.name) }
         
+        // 彻底清除任何残留的历史测试数据（如 "Car wash" 等意外项目）
+        for i in 0..<customModules.count {
+            customModules[i].entries.removeAll { $0.title.lowercased() == "car wash" }
+        }
+        userCustomHabitPresets.removeAll { $0.name.lowercased() == "car wash" || $0.label.lowercased() == "car wash" }
+        
         // 彻底清空历史默认假数据，确保默认库存为 0
         if !UserDefaults.standard.bool(forKey: "has_cleared_frequent_defaults_v2") {
             frequentGroceryList = []
