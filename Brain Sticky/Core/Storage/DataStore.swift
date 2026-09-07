@@ -293,12 +293,39 @@ public final class DataStore: ObservableObject {
             entry.count = 1
             entry.isCompleted = true
             entry.lastCheckedInAt = Date()
+            
+            // 自然日日期（yyyy-MM-dd）
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            let todayStr = formatter.string(from: Date())
+            
+            // 1. 模块级别按自然日去重累计总打卡天数（每满 30 天自动奖励一颗星）
+            if !customModules[mIdx].checkInHistoryDates.contains(todayStr) {
+                customModules[mIdx].checkInHistoryDates.append(todayStr)
+                customModules[mIdx].totalCheckInDays += 1
+            }
+            
+            // 2. 单个习惯项累计打卡天数
+            if !entry.historyDates.contains(todayStr) {
+                entry.historyDates.append(todayStr)
+                entry.totalDays += 1
+                entry.streakDays += 1
+            }
+            
             customModules[mIdx].entries[eIdx] = entry
             saveCustomModules()
             HapticManager.shared.notification(.success)
             return (true, nil)
         }
         return (false, nil)
+    }
+    
+    /// 测试与模拟专用：直接设置打卡模块的累计天数以验证 30 天里程碑与星星展示
+    public func setModuleCheckInDaysForTesting(moduleId: String, days: Int) {
+        if let mIdx = customModules.firstIndex(where: { $0.id == moduleId }) {
+            customModules[mIdx].totalCheckInDays = max(0, days)
+            saveCustomModules()
+        }
     }
     
     public func toggleEntryInModule(moduleId: String, entryId: UUID) {

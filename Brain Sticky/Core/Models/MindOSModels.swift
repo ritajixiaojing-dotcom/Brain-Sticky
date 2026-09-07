@@ -371,6 +371,9 @@ public struct CustomEntryItem: Identifiable, Codable, Hashable {
     public var count: Int
     public var createdAt: Date
     public var lastCheckedInAt: Date?
+    public var streakDays: Int
+    public var totalDays: Int
+    public var historyDates: [String]
     
     public init(
         id: UUID = UUID(),
@@ -381,7 +384,10 @@ public struct CustomEntryItem: Identifiable, Codable, Hashable {
         targetDate: Date? = nil,
         count: Int = 0,
         createdAt: Date = Date(),
-        lastCheckedInAt: Date? = nil
+        lastCheckedInAt: Date? = nil,
+        streakDays: Int = 0,
+        totalDays: Int = 0,
+        historyDates: [String] = []
     ) {
         self.id = id
         self.title = title
@@ -392,10 +398,14 @@ public struct CustomEntryItem: Identifiable, Codable, Hashable {
         self.count = count
         self.createdAt = createdAt
         self.lastCheckedInAt = lastCheckedInAt
+        self.streakDays = streakDays
+        self.totalDays = totalDays
+        self.historyDates = historyDates
     }
     
     enum CodingKeys: String, CodingKey {
         case id, title, icon, detail, isCompleted, targetDate, count, createdAt, lastCheckedInAt
+        case streakDays, totalDays, historyDates
     }
     
     public init(from decoder: Decoder) throws {
@@ -410,6 +420,9 @@ public struct CustomEntryItem: Identifiable, Codable, Hashable {
         self.count = try container.decodeIfPresent(Int.self, forKey: .count) ?? 0
         self.createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         self.lastCheckedInAt = try container.decodeIfPresent(Date.self, forKey: .lastCheckedInAt)
+        self.streakDays = try container.decodeIfPresent(Int.self, forKey: .streakDays) ?? 0
+        self.totalDays = try container.decodeIfPresent(Int.self, forKey: .totalDays) ?? 0
+        self.historyDates = try container.decodeIfPresent([String].self, forKey: .historyDates) ?? []
     }
     
     /// 检查是否在 24 小时内已打卡
@@ -504,6 +517,13 @@ public struct CustomModuleCard: Identifiable, Codable, Hashable {
     public var colorHex: String
     public var entries: [CustomEntryItem]
     public var mode: String // "checkin" | "countdown" | "general"
+    public var totalCheckInDays: Int // 累计打卡天数
+    public var checkInHistoryDates: [String] // 历史打卡日期列表 (yyyy-MM-dd)
+    
+    /// 每满 30 天奖励一个星星 ⭐
+    public var starCount: Int {
+        totalCheckInDays / 30
+    }
     
     public init(
         id: String,
@@ -511,7 +531,9 @@ public struct CustomModuleCard: Identifiable, Codable, Hashable {
         icon: String = "🎯",
         colorHex: String = "#E0F2FE",
         entries: [CustomEntryItem] = [],
-        mode: String = "checkin"
+        mode: String = "checkin",
+        totalCheckInDays: Int = 0,
+        checkInHistoryDates: [String] = []
     ) {
         self.id = id
         self.title = title
@@ -519,6 +541,24 @@ public struct CustomModuleCard: Identifiable, Codable, Hashable {
         self.colorHex = colorHex
         self.entries = entries
         self.mode = mode
+        self.totalCheckInDays = totalCheckInDays
+        self.checkInHistoryDates = checkInHistoryDates
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, title, icon, colorHex, entries, mode, totalCheckInDays, checkInHistoryDates
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decodeIfPresent(String.self, forKey: .id) ?? "custom_1"
+        self.title = try container.decodeIfPresent(String.self, forKey: .title) ?? "打卡"
+        self.icon = try container.decodeIfPresent(String.self, forKey: .icon) ?? "🎯"
+        self.colorHex = try container.decodeIfPresent(String.self, forKey: .colorHex) ?? "#E0F2FE"
+        self.entries = try container.decodeIfPresent([CustomEntryItem].self, forKey: .entries) ?? []
+        self.mode = try container.decodeIfPresent(String.self, forKey: .mode) ?? "checkin"
+        self.totalCheckInDays = try container.decodeIfPresent(Int.self, forKey: .totalCheckInDays) ?? 0
+        self.checkInHistoryDates = try container.decodeIfPresent([String].self, forKey: .checkInHistoryDates) ?? []
     }
 }
 

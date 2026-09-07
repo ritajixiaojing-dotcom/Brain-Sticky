@@ -238,6 +238,30 @@ public struct CustomModuleDetailView: View {
                 
                 Spacer()
                 
+                // 右上角：每满 30 天奖励 1 个金色星星勋章 ⭐
+                if module.starCount > 0 {
+                    HStack(spacing: 2) {
+                        ForEach(0..<min(module.starCount, 3), id: \.self) { _ in
+                            Text("⭐️")
+                                .font(.system(size: 13))
+                        }
+                        if module.starCount > 3 {
+                            Text("x\(module.starCount)")
+                                .font(.system(size: 11, weight: .heavy, design: .rounded))
+                                .foregroundColor(Color(red: 235/255, green: 140/255, blue: 0/255))
+                        }
+                    }
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(Color(red: 255/255, green: 248/255, blue: 220/255))
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(Color(red: 255/255, green: 215/255, blue: 0/255).opacity(0.8), lineWidth: 1.2)
+                    )
+                    .shadow(color: Color(red: 255/255, green: 215/255, blue: 0/255).opacity(0.3), radius: 3, x: 0, y: 1)
+                }
+                
                 Button(action: { isShowingEditModuleSheet = true }) {
                     HStack(spacing: 4) {
                         Image(systemName: "paintpalette.fill")
@@ -270,6 +294,16 @@ public struct CustomModuleDetailView: View {
                     }
                     
                     Spacer()
+                    
+                    if module.totalCheckInDays > 0 {
+                        Text(langManager.currentLanguage == .chinese ? "累计打卡 \(module.totalCheckInDays) 天" : "Total \(module.totalCheckInDays)d")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundColor(BentoColors.omniElectric)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2.5)
+                            .background(Color.white.opacity(0.75))
+                            .clipShape(Capsule())
+                    }
                 } else {
                     Text(langManager.currentLanguage == .chinese ? "点击下方快捷标签或自定义按钮，将想打卡的项目放进列表 ✨" : "Tap tags below or add custom habits to start ✨")
                         .font(.system(size: 12, weight: .medium, design: .rounded))
@@ -756,10 +790,22 @@ struct HabitItemRow: View {
             
             // 中间：习惯标题与描述备注
             VStack(alignment: .leading, spacing: 3) {
-                Text(item.title)
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .strikethrough(isCheckedInToday, color: .secondary)
-                    .foregroundColor(isCheckedInToday ? .secondary : .primary)
+                HStack(spacing: 6) {
+                    Text(item.title)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .strikethrough(isCheckedInToday, color: .secondary)
+                        .foregroundColor(isCheckedInToday ? .secondary : .primary)
+                    
+                    if item.totalDays > 0 {
+                        Text(langManager.currentLanguage == .chinese ? "已坚持\(item.totalDays)天" : "\(item.totalDays)d")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundColor(BentoColors.omniElectric)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1.5)
+                            .background(BentoColors.omniElectric.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                }
                 
                 if !item.detail.isEmpty {
                     Text(item.detail)
@@ -1130,6 +1176,30 @@ public struct BentoCustomCardView: View {
                 )
                 
                 Spacer()
+                
+                // 右上角：每满 30 天奖励 1 个金色星星勋章 ⭐
+                if module.starCount > 0 {
+                    HStack(spacing: 2) {
+                        ForEach(0..<min(module.starCount, 3), id: \.self) { _ in
+                            Text("⭐️")
+                                .font(.system(size: 11))
+                        }
+                        if module.starCount > 3 {
+                            Text("x\(module.starCount)")
+                                .font(.system(size: 10, weight: .heavy, design: .rounded))
+                                .foregroundColor(Color(red: 235/255, green: 140/255, blue: 0/255))
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2.5)
+                    .background(Color(red: 255/255, green: 248/255, blue: 220/255))
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(Color(red: 255/255, green: 215/255, blue: 0/255).opacity(0.8), lineWidth: 1)
+                    )
+                    .shadow(color: Color(red: 255/255, green: 200/255, blue: 0/255).opacity(0.25), radius: 2, x: 0, y: 1)
+                }
                 
                 if module.entries.count > 0 {
                     let completed = module.entries.filter { $0.isCompleted }.count
