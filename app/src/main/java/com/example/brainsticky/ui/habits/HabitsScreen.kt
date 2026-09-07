@@ -58,6 +58,23 @@ fun HabitsScreen(
                     }
                 },
                 actions = {
+                    val starCount = habitModule?.starCount ?: 0
+                    if (starCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFFFF8DC))
+                                .border(1.dp, Color(0xFFFFD700).copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = if (starCount > 3) "⭐️x$starCount" else "⭐️".repeat(minOf(starCount, 3)),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFE68A00)
+                            )
+                        }
+                    }
                     IconButton(onClick = { isShowingAddDialog = true }) {
                         Icon(Icons.Default.Add, contentDescription = "Add")
                     }
@@ -83,6 +100,77 @@ fun HabitsScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            val totalCheckInDays = habitModule?.totalCheckInDays ?: 0
+            val starCount = habitModule?.starCount ?: 0
+            val completedCount = habitModule?.entries?.count { it.isCompleted } ?: 0
+            val totalEntries = habitModule?.entries?.size ?: 0
+
+            if (habitModule != null && habitModule.entries.isNotEmpty()) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text("🎯", fontSize = 15.sp)
+                            Text(
+                                text = if (lang == AppLanguage.CHINESE) "今日打卡：$completedCount / $totalEntries 已完成" else "Today: $completedCount / $totalEntries Done",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            if (starCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFFFFF8DC))
+                                        .border(1.dp, Color(0xFFFFD700).copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (starCount > 3) "⭐️x$starCount" else "⭐️".repeat(minOf(starCount, 3)),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFE68A00)
+                                    )
+                                }
+                            }
+
+                            if (totalCheckInDays > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(BentoColors.OmniElectric.copy(alpha = 0.12f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (lang == AppLanguage.CHINESE) "累计 $totalCheckInDays 天" else "${totalCheckInDays}d",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = BentoColors.OmniElectric
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             if (habitModule == null || habitModule.entries.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),

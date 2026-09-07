@@ -320,7 +320,27 @@ class DataStore private constructor(context: Context) {
                         )
                     } else entry
                 }
-                mod.copy(entries = updatedEntries)
+                
+                // 1. 模块级别按自然日去重累计总打卡天数（每满 30 天自动奖励一颗星）
+                val isNewCheckInDay = !mod.checkInHistoryDates.contains(todayStr)
+                val updatedModuleDates = if (isNewCheckInDay) (mod.checkInHistoryDates + todayStr).distinct() else mod.checkInHistoryDates
+                val updatedTotalDays = if (isNewCheckInDay) mod.totalCheckInDays + 1 else mod.totalCheckInDays
+
+                mod.copy(
+                    entries = updatedEntries,
+                    totalCheckInDays = updatedTotalDays,
+                    checkInHistoryDates = updatedModuleDates
+                )
+            } else mod
+        }
+        saveCustomModules()
+    }
+
+    /// 测试与模拟专用：设置打卡天数以验证 30 天里程碑与星星展示
+    fun setModuleCheckInDaysForTesting(moduleId: String, days: Int) {
+        customModules = customModules.map { mod ->
+            if (mod.id == moduleId) {
+                mod.copy(totalCheckInDays = days.coerceAtLeast(0))
             } else mod
         }
         saveCustomModules()

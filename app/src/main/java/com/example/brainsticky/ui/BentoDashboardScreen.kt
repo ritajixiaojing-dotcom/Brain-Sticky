@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -377,9 +378,13 @@ fun BentoDashboardScreen(
                             }
                         }
 
+                        val habitModule = dataStore.customModules.firstOrNull()
+                        val starCount = habitModule?.starCount ?: 0
+
                         BentoCard(
                             title = if (lang == AppLanguage.CHINESE) "打卡" else "Check-in",
                             badgeCount = totalHabits,
+                            starCount = starCount,
                             icon = Icons.Default.Adjust,
                             themeColor = BentoColors.OmniElectric,
                             modifier = Modifier.weight(1f),
@@ -867,6 +872,7 @@ fun BentoCard(
     icon: ImageVector,
     themeColor: Color,
     modifier: Modifier = Modifier,
+    starCount: Int = 0,
     onClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
@@ -912,19 +918,42 @@ fun BentoCard(
                     )
                 }
 
-                if (badgeCount > 0) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(themeColor)
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "$badgeCount",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White
-                        )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // 右上角：每满 30 天奖励 1 个金色星星勋章 ⭐
+                    if (starCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFFFF8DC))
+                                .border(1.dp, Color(0xFFFFD700).copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 5.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = if (starCount > 3) "⭐️x$starCount" else "⭐️".repeat(minOf(starCount, 3)),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFE68A00)
+                            )
+                        }
+                    }
+
+                    if (badgeCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(themeColor)
+                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "$badgeCount",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }

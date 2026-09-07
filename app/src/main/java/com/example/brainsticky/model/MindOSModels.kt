@@ -207,8 +207,14 @@ data class CustomModule(
     val subtitle: String = "坚持微小日常，日积月累 ✨",
     val icon: String = "target",
     val themeColorHex: String = "#4D88FF",
-    val entries: List<CustomEntryItem> = emptyList()
-)
+    val entries: List<CustomEntryItem> = emptyList(),
+    val totalCheckInDays: Int = 0,
+    val checkInHistoryDates: List<String> = emptyList()
+) {
+    /// 每满 30 天奖励一个星星 ⭐
+    val starCount: Int
+        get() = totalCheckInDays / 30
+}
 
 data class BuiltinHabitPreset(
     val icon: String,
