@@ -211,7 +211,7 @@ public struct VaultMainView: View {
     }
 }
 
-// MARK: - 极简密码卡片 (默认闭眼隐藏，支持睁眼/闭眼切换)
+// MARK: - 极简密码卡片 (默认闭眼隐藏，支持睁眼/闭眼切换，主题/密码/备注支持自动换行)
 struct VaultItemCardRow: View {
     @ObservedObject var store = DataStore.shared
     @State var item: VaultItem
@@ -222,9 +222,10 @@ struct VaultItemCardRow: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+            HStack(alignment: .top, spacing: 6) {
                 Text(item.title)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .fixedSize(horizontal: false, vertical: true)
                 
                 Spacer()
                 
@@ -241,13 +242,16 @@ struct VaultItemCardRow: View {
                 Text(item.accountOrKey)
                     .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             
-            // 密码框 (默认隐藏，支持睁闭眼切换与放大展示)
-            HStack(spacing: 10) {
+            // 密码框 (默认隐藏，支持睁闭眼切换与放大展示，密码支持自动换行)
+            HStack(alignment: .center, spacing: 10) {
                 Text(isRevealed ? item.secretValue : "••••••••")
                     .font(.system(size: 16, weight: .bold, design: .monospaced))
                     .foregroundColor(isRevealed ? .primary : .secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(nil)
                 
                 Spacer()
                 
@@ -281,6 +285,15 @@ struct VaultItemCardRow: View {
             .onTapGesture {
                 onLargeDisplay()
             }
+            
+            // 备注栏 (有备注时优雅呈现，支持自动折行)
+            if !item.notes.isEmpty {
+                Text(item.notes)
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 2)
+            }
         }
         .padding(14)
         .background(BentoColors.bgSecondary)
@@ -296,6 +309,7 @@ struct AddVaultSheet: View {
     
     @State private var titleText: String = ""
     @State private var vaultSecret: String = ""
+    @State private var notesText: String = ""
     
     var isSubmitDisabled: Bool {
         titleText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
@@ -306,7 +320,7 @@ struct AddVaultSheet: View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 14) {
-                    // 主题
+                    // 主题 (支持自动换行)
                     VStack(alignment: .leading, spacing: 6) {
                         Text(langManager.currentLanguage == .chinese ? "主题" : "Subject")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
@@ -314,15 +328,17 @@ struct AddVaultSheet: View {
                         
                         TextField(
                             langManager.currentLanguage == .chinese ? "如: 门锁 / WiFi / 证件" : "e.g. Door Lock / WiFi / ID",
-                            text: $titleText
+                            text: $titleText,
+                            axis: .vertical
                         )
+                        .lineLimit(1...4)
                         .font(.system(size: 15, weight: .medium, design: .rounded))
                         .padding(11)
                         .background(BentoColors.bgCard)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                     
-                    // 密码
+                    // 密码 (支持自动换行)
                     VStack(alignment: .leading, spacing: 6) {
                         Text(langManager.currentLanguage == .chinese ? "密码 / 密钥" : "Secret / Password")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
@@ -330,9 +346,29 @@ struct AddVaultSheet: View {
                         
                         TextField(
                             langManager.currentLanguage == .chinese ? "如: 081290# / 123456" : "e.g. 081290# / 123456",
-                            text: $vaultSecret
+                            text: $vaultSecret,
+                            axis: .vertical
                         )
+                        .lineLimit(1...4)
                         .font(.system(size: 15, weight: .bold, design: .monospaced))
+                        .padding(11)
+                        .background(BentoColors.bgCard)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    
+                    // 备注栏 (支持多行自动换行)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(langManager.currentLanguage == .chinese ? "备注" : "Notes")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(.secondary)
+                        
+                        TextField(
+                            langManager.currentLanguage == .chinese ? "如: 备忘说明、使用提示或重置方法..." : "e.g. Additional remarks, usage hints...",
+                            text: $notesText,
+                            axis: .vertical
+                        )
+                        .lineLimit(2...6)
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
                         .padding(11)
                         .background(BentoColors.bgCard)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -343,7 +379,8 @@ struct AddVaultSheet: View {
                         let item = VaultItem(
                             title: titleText.trimmingCharacters(in: .whitespacesAndNewlines),
                             category: .custom,
-                            secretValue: vaultSecret.trimmingCharacters(in: .whitespacesAndNewlines)
+                            secretValue: vaultSecret.trimmingCharacters(in: .whitespacesAndNewlines),
+                            notes: notesText.trimmingCharacters(in: .whitespacesAndNewlines)
                         )
                         store.addVaultItem(item)
                         HapticManager.shared.notification(.success)
@@ -384,7 +421,7 @@ struct AddVaultSheet: View {
     }
 }
 
-// MARK: - 修改密码弹窗
+// MARK: - 修改密码弹窗 (支持主题/密码/备注多行自动换行)
 struct EditVaultSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var store = DataStore.shared
@@ -395,8 +432,15 @@ struct EditVaultSheet: View {
         NavigationStack {
             Form {
                 Section(header: Text(langManager.currentLanguage == .chinese ? "主题与密码" : "Subject & Secret").font(.system(size: 11, weight: .bold, design: .rounded))) {
-                    TextField(langManager.currentLanguage == .chinese ? "主题" : "Subject", text: $item.title)
-                    TextField(langManager.currentLanguage == .chinese ? "密码" : "Secret", text: $item.secretValue)
+                    TextField(langManager.currentLanguage == .chinese ? "主题" : "Subject", text: $item.title, axis: .vertical)
+                        .lineLimit(1...4)
+                    TextField(langManager.currentLanguage == .chinese ? "密码" : "Secret", text: $item.secretValue, axis: .vertical)
+                        .lineLimit(1...4)
+                }
+                
+                Section(header: Text(langManager.currentLanguage == .chinese ? "备注" : "Notes").font(.system(size: 11, weight: .bold, design: .rounded))) {
+                    TextField(langManager.currentLanguage == .chinese ? "备注说明..." : "Additional notes...", text: $item.notes, axis: .vertical)
+                        .lineLimit(2...6)
                 }
                 
                 Section {
@@ -446,15 +490,28 @@ struct VaultLargeDisplaySheet: View {
                 
                 Text(item.title)
                     .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 20)
                 
                 Text(item.secretValue)
-                    .font(.system(size: 32, weight: .heavy, design: .monospaced))
+                    .font(.system(size: 30, weight: .heavy, design: .monospaced))
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(20)
                     .frame(maxWidth: .infinity)
                     .background(BentoColors.vaultViolet.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                     .padding(.horizontal, 20)
+                
+                if !item.notes.isEmpty {
+                    Text(item.notes)
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 24)
+                }
                 
                 Button(action: {
                     UIPasteboard.general.string = item.secretValue

@@ -371,7 +371,7 @@ struct BentoVaultCard: View {
                         .foregroundColor(.primary)
                         .lineLimit(1)
                     
-                    Text(first.secretValue)
+                    Text("••••••••")
                         .font(.system(size: 13, weight: .semibold, design: .monospaced))
                         .foregroundColor(BentoColors.vaultViolet)
                         .lineLimit(1)
@@ -680,7 +680,7 @@ struct SearchResultsSection: View {
                                             .font(.system(size: 13, weight: .bold, design: .rounded))
                                             .foregroundColor(.primary)
                                         Spacer()
-                                        Text(item.secretValue)
+                                        Text("••••••••")
                                             .font(.system(size: 12, weight: .medium, design: .monospaced))
                                             .foregroundColor(BentoColors.vaultViolet)
                                     }

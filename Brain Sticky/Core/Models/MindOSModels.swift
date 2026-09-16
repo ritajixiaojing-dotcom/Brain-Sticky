@@ -169,6 +169,22 @@ public struct VaultItem: Identifiable, Codable, Hashable {
         self.updatedAt = updatedAt
         self.isMasked = isMasked
     }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, title, category, accountOrKey, secretValue, notes, updatedAt, isMasked
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        self.title = try container.decodeIfPresent(String.self, forKey: .title) ?? ""
+        self.category = try container.decodeIfPresent(VaultCategory.self, forKey: .category) ?? .custom
+        self.accountOrKey = try container.decodeIfPresent(String.self, forKey: .accountOrKey) ?? ""
+        self.secretValue = try container.decodeIfPresent(String.self, forKey: .secretValue) ?? ""
+        self.notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
+        self.updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
+        self.isMasked = try container.decodeIfPresent(Bool.self, forKey: .isMasked) ?? false
+    }
 }
 
 // MARK: - 4. 买菜 (Grocery)
