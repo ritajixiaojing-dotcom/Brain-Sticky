@@ -292,4 +292,32 @@ class BrainStickyCoreTestSuite {
         assertTrue(mergedHabit.historyDates.contains("2026-09-04"))
         assertTrue(mergedHabit.historyDates.contains("2026-09-05"))
     }
+
+    @Test
+    fun testVaultItemNotesAndMultilineSerialization() {
+        val multilineTitle = "门禁系统\n2号楼入户"
+        val multilineSecret = "A1b2#C3d4\n9988#"
+        val multilineNotes = "注意：\n1. 每周二重置\n2. 紧急联系物业"
+
+        val item = VaultItem(
+            title = multilineTitle,
+            secretValue = multilineSecret,
+            notes = multilineNotes
+        )
+
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val serialized = json.encodeToString(VaultItem.serializer(), item)
+        val deserialized = json.decodeFromString(VaultItem.serializer(), serialized)
+
+        assertEquals(multilineTitle, deserialized.title)
+        assertEquals(multilineSecret, deserialized.secretValue)
+        assertEquals(multilineNotes, deserialized.notes)
+
+        // Verify backward compatibility: missing notes in legacy JSON defaults to empty string
+        val legacyJson = """{"id":"legacy-1","title":"WiFi","secretValue":"secret123"}"""
+        val legacyItem = json.decodeFromString(VaultItem.serializer(), legacyJson)
+        assertEquals("WiFi", legacyItem.title)
+        assertEquals("secret123", legacyItem.secretValue)
+        assertEquals("", legacyItem.notes)
+    }
 }

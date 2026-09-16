@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -41,6 +42,7 @@ fun VaultScreen(
 ) {
     val lang = dataStore.language
     var isShowingAddDialog by remember { mutableStateOf(false) }
+    var editingItem by remember { mutableStateOf<VaultItem?>(null) }
     var zoomItem by remember { mutableStateOf<VaultItem?>(null) }
     var vaultToDelete by remember { mutableStateOf<VaultItem?>(null) }
 
@@ -182,6 +184,7 @@ fun VaultScreen(
                                 lang = lang,
                                 onToggleMask = { dataStore.toggleVaultMask(item.id) },
                                 onZoom = { zoomItem = item },
+                                onEdit = { editingItem = item },
                                 onDelete = { vaultToDelete = item }
                             )
                         }
@@ -228,8 +231,21 @@ fun VaultScreen(
     if (isShowingAddDialog) {
         AddVaultDialog(
             lang = lang,
+            initialItem = null,
             onDismiss = { isShowingAddDialog = false },
             onSave = { dataStore.addVaultItem(it) }
+        )
+    }
+
+    editingItem?.let { item ->
+        AddVaultDialog(
+            lang = lang,
+            initialItem = item,
+            onDismiss = { editingItem = null },
+            onSave = {
+                dataStore.updateVaultItem(it)
+                editingItem = null
+            }
         )
     }
 
@@ -248,6 +264,7 @@ fun VaultCardRow(
     lang: AppLanguage,
     onToggleMask: () -> Unit,
     onZoom: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     val clipboardManager = LocalClipboardManager.current
@@ -267,25 +284,43 @@ fun VaultCardRow(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Text(
                     text = item.title,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
                 )
 
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(24.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
-                        modifier = Modifier.size(16.dp)
-                    )
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit",
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
 
@@ -293,11 +328,12 @@ fun VaultCardRow(
                 Text(
                     text = item.accountOrKey,
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 
-            // Secret Display Row
+            // Secret Display Row (密码框，长密码支持自动换行)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -313,7 +349,8 @@ fun VaultCardRow(
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
-                    color = BentoColors.VaultViolet
+                    color = BentoColors.VaultViolet,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
 
                 Row(
@@ -352,6 +389,16 @@ fun VaultCardRow(
                     }
                 }
             }
+
+            // 备注栏 (有内容时展示，支持自动换行)
+            if (item.notes.isNotBlank()) {
+                Text(
+                    text = item.notes,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
@@ -359,12 +406,13 @@ fun VaultCardRow(
 @Composable
 fun AddVaultDialog(
     lang: AppLanguage,
+    initialItem: VaultItem? = null,
     onDismiss: () -> Unit,
     onSave: (VaultItem) -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var account by remember { mutableStateOf("") }
-    var secret by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf(initialItem?.title ?: "") }
+    var secret by remember { mutableStateOf(initialItem?.secretValue ?: "") }
+    var notes by remember { mutableStateOf(initialItem?.notes ?: "") }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -379,32 +427,46 @@ fun AddVaultDialog(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = if (lang == AppLanguage.CHINESE) "新建密码钥匙" else "New Vault Entry",
+                    text = if (initialItem != null) {
+                        if (lang == AppLanguage.CHINESE) "修改密码钥匙" else "Edit Vault Entry"
+                    } else {
+                        if (lang == AppLanguage.CHINESE) "新建密码钥匙" else "New Vault Entry"
+                    },
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp
                 )
 
+                // 主题 (支持自动换行)
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text(if (lang == AppLanguage.CHINESE) "标题 (如: 家门密码)" else "Title (e.g. Door Code)") },
-                    singleLine = true,
+                    label = { Text(if (lang == AppLanguage.CHINESE) "主题 (如: 门锁 / WiFi / 证件)" else "Subject (e.g. Door Lock / WiFi / ID)") },
+                    singleLine = false,
+                    minLines = 1,
+                    maxLines = 4,
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                OutlinedTextField(
-                    value = account,
-                    onValueChange = { account = it },
-                    label = { Text(if (lang == AppLanguage.CHINESE) "账号 / 备注 (选填)" else "Account / Note (Optional)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
+                // 密码 (支持自动换行)
                 OutlinedTextField(
                     value = secret,
                     onValueChange = { secret = it },
-                    label = { Text(if (lang == AppLanguage.CHINESE) "密码 / 口令" else "Password / Secret") },
-                    singleLine = true,
+                    label = { Text(if (lang == AppLanguage.CHINESE) "密码 / 密钥" else "Password / Secret") },
+                    singleLine = false,
+                    minLines = 1,
+                    maxLines = 4,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // 备注栏 (支持多行自动换行)
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text(if (lang == AppLanguage.CHINESE) "备注 (选填)" else "Notes / Remarks (Optional)") },
+                    placeholder = { Text(if (lang == AppLanguage.CHINESE) "记录补充说明、使用提示或备忘..." else "Additional remarks, usage hints...") },
+                    singleLine = false,
+                    minLines = 2,
+                    maxLines = 5,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -422,13 +484,24 @@ fun AddVaultDialog(
                     Button(
                         onClick = {
                             if (title.isNotBlank() && secret.isNotBlank()) {
-                                onSave(
-                                    VaultItem(
-                                        title = title.trim(),
-                                        accountOrKey = account.trim(),
-                                        secretValue = secret.trim()
+                                if (initialItem != null) {
+                                    onSave(
+                                        initialItem.copy(
+                                            title = title.trim(),
+                                            secretValue = secret.trim(),
+                                            notes = notes.trim(),
+                                            updatedAt = System.currentTimeMillis()
+                                        )
                                     )
-                                )
+                                } else {
+                                    onSave(
+                                        VaultItem(
+                                            title = title.trim(),
+                                            secretValue = secret.trim(),
+                                            notes = notes.trim()
+                                        )
+                                    )
+                                }
                                 onDismiss()
                             }
                         },
@@ -466,14 +539,17 @@ fun ZoomVaultDialog(
                     text = item.title,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 if (item.accountOrKey.isNotBlank()) {
                     Text(
                         text = item.accountOrKey,
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
 
@@ -490,7 +566,18 @@ fun ZoomVaultDialog(
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Black,
                         fontFamily = FontFamily.Monospace,
-                        color = BentoColors.VaultViolet
+                        color = BentoColors.VaultViolet,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+
+                if (item.notes.isNotBlank()) {
+                    Text(
+                        text = item.notes,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
 

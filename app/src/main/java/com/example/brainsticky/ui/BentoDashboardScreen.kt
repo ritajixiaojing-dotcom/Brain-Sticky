@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -308,11 +309,43 @@ fun BentoDashboardScreen(
                             modifier = Modifier.weight(1f),
                             onClick = { onNavigate(ScreenRoute.VAULT) }
                         ) {
-                            Text(
-                                text = if (lang == AppLanguage.CHINESE) "钥匙已妥善安放 🔒" else "Passwords secured 🔒",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                            )
+                            val first = dataStore.vaultItems.firstOrNull()
+                            if (first != null) {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        text = first.title,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "••••••••",
+                                        fontSize = 11.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = BentoColors.VaultViolet
+                                    )
+                                    if (dataStore.vaultItems.size > 1) {
+                                        val second = dataStore.vaultItems.getOrNull(1)
+                                        if (second != null) {
+                                            Text(
+                                                text = second.title,
+                                                fontSize = 10.sp,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+                            } else {
+                                Text(
+                                    text = if (lang == AppLanguage.CHINESE) "钥匙已妥善安放 🔒" else "Passwords secured 🔒",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                                )
+                            }
                         }
 
                         BentoCard(
