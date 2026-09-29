@@ -32,3 +32,14 @@ Package.resolved
 ._*
 .Spotlight-V100
 .Trashes
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+android/.externalNativeBuild/
+android/.cxx/
+
