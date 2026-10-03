@@ -14,12 +14,12 @@
   <a href="#-ios-implementation"><img src="https://img.shields.io/badge/iOS-17.0+-pink.svg?style=flat-square&logo=apple" alt="iOS 17+" /></a>
   <img src="https://img.shields.io/badge/Swift-5.10-orange.svg?style=flat-square&logo=swift" alt="Swift 5.10" />
   <img src="https://img.shields.io/badge/SwiftUI-Native-blue.svg?style=flat-square" alt="SwiftUI" />
-  <img src="https://img.shields.io/badge/App%20Store-v1.2.5%20Ready-success.svg?style=flat-square&logo=apple" alt="App Store v1.2.5" />
+  <img src="https://img.shields.io/badge/App%20Store-v1.2.6%20Ready-success.svg?style=flat-square&logo=apple" alt="App Store v1.2.6" />
   <!-- Android Badges -->
   <a href="#-android-implementation"><img src="https://img.shields.io/badge/Android-14%20(API%2034)-green.svg?style=flat-square&logo=android" alt="Android 14" /></a>
   <img src="https://img.shields.io/badge/Kotlin-2.0-purple.svg?style=flat-square&logo=kotlin" alt="Kotlin 2.0" />
   <img src="https://img.shields.io/badge/Jetpack%20Compose-Material%203-blue.svg?style=flat-square" alt="Jetpack Compose" />
-  <img src="https://img.shields.io/badge/Google%20Play-Closed%20Testing%20v1.2.7-yellow.svg?style=flat-square&logo=googleplay" alt="Google Play v1.2.7" />
+  <img src="https://img.shields.io/badge/Google%20Play-Closed%20Testing%20v1.2.8-yellow.svg?style=flat-square&logo=googleplay" alt="Google Play v1.2.8" />
   <!-- Privacy Badges -->
   <img src="https://img.shields.io/badge/Privacy-100%25%20Offline-brightgreen.svg?style=flat-square" alt="100% Offline" />
   <img src="https://img.shields.io/badge/Security-Hardware%20Biometrics-red.svg?style=flat-square" alt="Hardware Biometrics" />
@@ -33,8 +33,8 @@
 
 | Platform | Native Technology Stack | Target / SDK | Production Release Status | Current Release Track |
 | :--- | :--- | :--- | :--- | :--- |
-| 🍏 **iOS** | **Swift 5.10** + **SwiftUI** + Combine | iOS 17.0+ / iPadOS / macOS | **v1.2.5 (Build 1)** | **App Store** (Ready for Distribution) |
-| 🤖 **Android** | **Kotlin 2.0** + **Jetpack Compose** + Material 3 | Android 7.0 - 15 (minSdk 24, targetSdk 36) | **v1.2.7 (Build 11)** | **Google Play Console** (Closed Testing Track) |
+| 🍏 **iOS** | **Swift 5.10** + **SwiftUI** + Combine | iOS 17.0+ / iPadOS / macOS | **v1.2.6 (Build 1)** | **App Store** (Ready for Distribution) |
+| 🤖 **Android** | **Kotlin 2.0** + **Jetpack Compose** + Material 3 | Android 7.0 - 15 (minSdk 24, targetSdk 36) | **v1.2.8 (Build 12)** | **Google Play Console** (Closed Testing Track) |
 
 ---
 

@@ -95,8 +95,10 @@ public struct GroceryListView: View {
                 // 大字号输入框
                 TextField(
                     langManager.currentLanguage == .chinese ? "想买点什么呢 🍓..." : "What to buy 🍓...",
-                    text: $newItemName
+                    text: $newItemName,
+                    axis: .vertical
                 )
+                .lineLimit(1...4)
                 .font(.system(size: 15, weight: .medium, design: .rounded))
                 .submitLabel(.done)
                 .onSubmit(addNewGrocery)
@@ -248,6 +250,7 @@ struct GroceryItemRow: View {
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .strikethrough(item.isBought, color: .secondary)
                     .foregroundColor(item.isBought ? .secondary : .primary)
+                    .fixedSize(horizontal: false, vertical: true)
                 
                 if isFrequent {
                     Image(systemName: "star.fill")
@@ -346,7 +349,8 @@ struct EditGrocerySheet: View {
         NavigationStack {
             Form {
                 Section(header: Text(langManager.currentLanguage == .chinese ? "物品名称" : "Item Name").font(.system(size: 11, weight: .bold, design: .rounded))) {
-                    TextField(langManager.currentLanguage == .chinese ? "物品名" : "Item Name", text: $item.name)
+                    TextField(langManager.currentLanguage == .chinese ? "物品名" : "Item Name", text: $item.name, axis: .vertical)
+                        .lineLimit(1...4)
                         .submitLabel(.done)
                 }
                 
@@ -474,8 +478,10 @@ struct FrequentGroceryDrawer: View {
                         
                         TextField(
                             langManager.currentLanguage == .chinese ? "输入常购物品 (如 鸡蛋, 燕麦奶)..." : "e.g. Eggs, Oat milk...",
-                            text: $newFrequentName
+                            text: $newFrequentName,
+                            axis: .vertical
                         )
+                        .lineLimit(1...4)
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .submitLabel(.done)
                         .onSubmit(addCustomFrequent)
