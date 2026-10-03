@@ -208,7 +208,9 @@ fun GroceryScreen(
                             fontSize = 13.sp
                         )
                     },
-                    singleLine = true,
+                    singleLine = false,
+                    minLines = 1,
+                    maxLines = 4,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { commitAddGrocery() }),
                     shape = RoundedCornerShape(14.dp),
@@ -220,7 +222,7 @@ fun GroceryScreen(
                     ),
                     modifier = Modifier
                         .weight(1f)
-                        .height(52.dp)
+                        .defaultMinSize(minHeight = 52.dp)
                 )
 
                 IconButton(
