@@ -201,7 +201,24 @@ fun GroceryScreen(
 
                 TextField(
                     value = newItemName,
-                    onValueChange = { newItemName = it },
+                    onValueChange = {
+                        if (it.contains('\n')) {
+                            val lines = it.lines().map { l -> l.trim() }.filter { l -> l.isNotEmpty() }
+                            if (lines.size > 1) {
+                                newItemName = ""
+                                lines.forEach { line ->
+                                    dataStore.addGroceryItem(GroceryItem(name = line, aisle = selectedAisle))
+                                }
+                            } else if (lines.isNotEmpty()) {
+                                newItemName = lines.first()
+                                commitAddGrocery()
+                            } else {
+                                newItemName = ""
+                            }
+                        } else {
+                            newItemName = it
+                        }
+                    },
                     placeholder = {
                         Text(
                             if (lang == AppLanguage.CHINESE) "想买点什么呢 🍓..." else "What to buy 🍓...",
