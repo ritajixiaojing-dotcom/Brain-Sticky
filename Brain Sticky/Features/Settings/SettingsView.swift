@@ -97,7 +97,7 @@ public struct SettingsView: View {
                         Text(langManager.localized(.version))
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                         Spacer()
-                        Text("1.2.6 (Build 1)")
+                        Text("\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.2.6") (Build \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "2"))")
                             .font(.system(size: 13, design: .rounded))
                             .foregroundColor(.secondary)
                     }

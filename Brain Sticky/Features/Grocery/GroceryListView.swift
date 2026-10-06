@@ -102,6 +102,33 @@ public struct GroceryListView: View {
                 .font(.system(size: 15, weight: .medium, design: .rounded))
                 .submitLabel(.done)
                 .onSubmit(addNewGrocery)
+                .onChange(of: newItemName) { oldValue, newValue in
+                    if newValue.contains("\n") {
+                        let lines = newValue.components(separatedBy: .newlines)
+                            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                            .filter { !$0.isEmpty }
+                        
+                        if lines.count > 1 {
+                            newItemName = ""
+                            for line in lines {
+                                let item = GroceryItem(
+                                    name: line,
+                                    aisle: selectedAisle,
+                                    quantity: "1"
+                                )
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                                    store.addGroceryItem(item)
+                                }
+                            }
+                            HapticManager.shared.notification(.success)
+                        } else if let single = lines.first {
+                            newItemName = single
+                            addNewGrocery()
+                        } else {
+                            newItemName = ""
+                        }
+                    }
+                }
                 
                 if !newItemName.isEmpty {
                     Button(action: { newItemName = "" }) {
@@ -352,6 +379,11 @@ struct EditGrocerySheet: View {
                     TextField(langManager.currentLanguage == .chinese ? "物品名" : "Item Name", text: $item.name, axis: .vertical)
                         .lineLimit(1...4)
                         .submitLabel(.done)
+                        .onChange(of: item.name) { oldValue, newValue in
+                            if newValue.contains("\n") {
+                                item.name = newValue.replacingOccurrences(of: "\n", with: "")
+                            }
+                        }
                 }
                 
                 Section(header: Text(langManager.currentLanguage == .chinese ? "分区归类" : "Category").font(.system(size: 11, weight: .bold, design: .rounded))) {
@@ -485,6 +517,33 @@ struct FrequentGroceryDrawer: View {
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .submitLabel(.done)
                         .onSubmit(addCustomFrequent)
+                        .onChange(of: newFrequentName) { oldValue, newValue in
+                            if newValue.contains("\n") {
+                                let lines = newValue.components(separatedBy: .newlines)
+                                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                    .filter { !$0.isEmpty }
+                                
+                                if lines.count > 1 {
+                                    newFrequentName = ""
+                                    for line in lines {
+                                        let item = GroceryItem(
+                                            name: line,
+                                            aisle: newFrequentAisle,
+                                            isFrequent: true
+                                        )
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                                            store.addFrequentGrocery(item)
+                                        }
+                                    }
+                                    HapticManager.shared.notification(.success)
+                                } else if let single = lines.first {
+                                    newFrequentName = single
+                                    addCustomFrequent()
+                                } else {
+                                    newFrequentName = ""
+                                }
+                            }
+                        }
                         
                         Button(action: addCustomFrequent) {
                             Image(systemName: "plus.circle.fill")
