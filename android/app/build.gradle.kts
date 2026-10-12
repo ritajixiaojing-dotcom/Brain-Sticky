@@ -11,8 +11,8 @@ android {
         applicationId = "com.ritastudio.brainsticky"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.2.8"
+        versionCode = 13
+        versionName = "1.2.9"
     }
 
     signingConfigs {
