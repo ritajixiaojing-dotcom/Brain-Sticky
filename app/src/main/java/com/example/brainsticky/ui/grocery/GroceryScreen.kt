@@ -47,6 +47,7 @@ fun GroceryScreen(
     var isShowingFrequentDialog by remember { mutableStateOf(false) }
     var isAisleMenuExpanded by remember { mutableStateOf(false) }
     var groceryToDelete by remember { mutableStateOf<GroceryItem?>(null) }
+    var isShowingClearBoughtDialog by remember { mutableStateOf(false) }
 
     val totalCount = dataStore.groceryItems.size
     val boughtCount = dataStore.groceryItems.count { it.isBought }
@@ -80,6 +81,19 @@ fun GroceryScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    TextButton(
+                        onClick = { isShowingClearBoughtDialog = true },
+                        enabled = boughtCount > 0
+                    ) {
+                        Text(
+                            text = if (lang == AppLanguage.CHINESE) "清空已买" else "Clear Bought",
+                            color = if (boughtCount > 0) BentoColors.GroceryMint else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -298,6 +312,43 @@ fun GroceryScreen(
                 }
             }
         }
+    }
+
+    // Clear Bought Confirmation Dialog
+    if (isShowingClearBoughtDialog) {
+        AlertDialog(
+            onDismissRequest = { isShowingClearBoughtDialog = false },
+            title = {
+                Text(
+                    text = if (lang == AppLanguage.CHINESE) "清空已买物品？" else "Clear Bought Items?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = if (lang == AppLanguage.CHINESE)
+                        "确定要清空已标记为已买的 $boughtCount 项物品吗？"
+                    else
+                        "Are you sure you want to clear all $boughtCount bought items?"
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        dataStore.clearBoughtGrocery()
+                        isShowingClearBoughtDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(if (lang == AppLanguage.CHINESE) "清空" else "Clear")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isShowingClearBoughtDialog = false }) {
+                    Text(if (lang == AppLanguage.CHINESE) "取消" else "Cancel")
+                }
+            }
+        )
     }
 
     // Delete Confirmation Dialog
