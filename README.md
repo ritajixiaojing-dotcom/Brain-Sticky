@@ -111,6 +111,8 @@ Both codebases were architected around modern reactive principles, ensuring dete
 - **Aisle Auto-Grouping**: Automatic categorization (Produce, Meat, Dairy, Snacks, Pantry, Household).
 - **Quick Restock Drawer**: Frequent essentials quick-picker for recurring pantry supplies.
 - **Progress Gauge**: Real-time progress bar tracking bought vs. pending groceries.
+- **Clear Bought Groceries (一键清空已买)**: One-tap cleanup of fulfilled items with real-time dynamic count indicators and safety confirmation dialog.
+- **Multiline Auto-Wrap & Instant Save**: Support for long grocery notes with auto-wrapping and Return/Enter key instant save.
 
 ### 5. 🛍️ Cooling-Off Wishlist (理性剁手)
 - **Impulse Blocker**: Customizable cooling-off periods (7, 14, 30 days, or permanent pause) before purchasing.
