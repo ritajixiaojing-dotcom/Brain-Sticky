@@ -386,34 +386,12 @@ struct EditGrocerySheet: View {
                         }
                 }
                 
-                Section(header: Text(langManager.currentLanguage == .chinese ? "分区归类" : "Category").font(.system(size: 11, weight: .bold, design: .rounded))) {
-                    HStack {
-                        Text(langManager.currentLanguage == .chinese ? "当前分区" : "Current Category")
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
-                        Spacer()
-                        HStack(spacing: 4) {
-                            Text(item.aisle.icon)
-                                .font(.system(size: 14))
-                            CuteHollowTitleView(
-                                text: item.aisle.localized(lang: langManager.currentLanguage),
-                                fontSize: 14,
-                                strokeColor: Color(red: 120/255, green: 112/255, blue: 135/255),
-                                strokeWidth: 1.0,
-                                fillColor: Color.white
-                            )
-                        }
-                    }
-                    
-                    Picker(langManager.currentLanguage == .chinese ? "修改分区" : "Change Category", selection: $item.aisle) {
+                Section(header: Text(langManager.currentLanguage == .chinese ? "物品品类" : "Category").font(.system(size: 11, weight: .bold, design: .rounded))) {
+                    Picker(langManager.currentLanguage == .chinese ? "物品品类" : "Category", selection: $item.aisle) {
                         ForEach(GroceryAisle.allCases) { aisle in
                             Text(aisle.cuteTitle).tag(aisle)
                         }
                     }
-                }
-                
-                Section(header: Text(langManager.currentLanguage == .chinese ? "数量/备注" : "Quantity / Notes").font(.system(size: 11, weight: .bold, design: .rounded))) {
-                    TextField(langManager.currentLanguage == .chinese ? "如: 2袋 / 500g" : "e.g. 2 bags / 500g", text: $item.quantity)
-                        .submitLabel(.done)
                 }
                 
                 Section {
